@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Chat{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-header">
+        <h2>.connect</h2>
+        <a href="{% url 'logout' %}" class="logout-btn" title="Logout">
+            <span>🚪</span> Logout
+        </a>
+    </div>
+    
+    <div class="chat-main">
+
+    <div class="user-list" id="userList">
+        <div class="user-list-header">
+            <span>👥</span> Users
+        </div>
+        {% for user in users %}
+        <div class="user-item" data-user-id="{{ user.id }}">
+            <span>{{ user.username }}</span>
+        </div>
+        {% empty %}
+        <div class="user-item" style="cursor: default; opacity: 0.6;">
+            <span>No other users</span>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="chat-area">
+        <div class="chat-header-secondary" id="chatHeader">
+            <span style="margin-right: 8px;">💬</span>
+            Select a user to chat
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="empty-state">
+                <div class="empty-state-icon">💬</div>
+                <p>Select a user from the sidebar to start chatting</p>
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+            <button id="sendButton" disabled>Send</button>
+        </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.currentUserId = {{ request.user.id|default:0 }};
+    window.selectedUserId = {{ selected_user_id|default:0 }};
+</script>
+<script src="{% static 'js/ui.js' %}"></script>
+<script src="{% static 'js/chat.js' %}"></script>
+{% endblock %}
