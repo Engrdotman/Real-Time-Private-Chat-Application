@@ -6,8 +6,12 @@ from django.http import JsonResponse
 from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
 from .forms import SignUpForm, LoginForm
-from .models import Message
+from .models import Message, UserProfile
 
 
 def signup_view(request):
@@ -74,10 +78,46 @@ def logout_view(request):
 
 @login_required
 def chat_view(request, user_id=None):
+    UserProfile.objects.get_or_create(user=request.user)
     users = User.objects.exclude(id=request.user.id)
+    
+    user_data = []
+    for u in users:
+        UserProfile.objects.get_or_create(user=u)
+        last_msg = Message.objects.filter(
+            Q(sender=request.user, receiver=u) | Q(sender=u, receiver=request.user)
+        ).order_by('-timestamp').first()
+        
+        unread_count = Message.objects.filter(
+            sender=u, receiver=request.user, is_read=False
+        ).count()
+        
+        last_msg_text = 'Say hi to ' + u.username
+        if last_msg:
+            if last_msg.content:
+                last_msg_text = last_msg.content
+            elif last_msg.file:
+                last_msg_text = 'Attachment 📎'
+                
+        user_data.append({
+            'id': u.id,
+            'username': u.username,
+            'is_online': u.profile.is_online,
+            'profile_pic': u.profile.profile_pic.url if u.profile.profile_pic else None,
+            'status_text': u.profile.status_text,
+            'last_message': last_msg_text,
+            'last_message_time': last_msg.timestamp if last_msg else None,
+            'unread_count': unread_count,
+        })
+        
+    user_data.sort(key=lambda x: x['last_message_time'].timestamp() if x['last_message_time'] else 0, reverse=True)
+
+    current_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
     return render(request, 'chat.html', {
-        'users': users,
-        'selected_user_id': user_id
+        'users': user_data,
+        'selected_user_id': user_id,
+        'current_profile': current_profile
     })
 
 
@@ -96,6 +136,7 @@ def get_messages(request, user_id):
         "sender_id": msg.sender.id,
         "sender_username": msg.sender.username,
         "content": msg.content,
+        "file_url": msg.file.url if msg.file else None,
         "timestamp": msg.timestamp.isoformat(),
         "is_read": msg.is_read
     } for msg in messages]
@@ -107,3 +148,34 @@ def get_messages(request, user_id):
 def get_users(request):
     users = User.objects.exclude(id=request.user.id).values("id", "username")
     return JsonResponse({"users": list(users)})
+
+@csrf_exempt
+@login_required
+def upload_attachment(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        uploaded_file = request.FILES['file']
+        fs = FileSystemStorage(location=settings.MEDIA_ROOT + '/chat_files/', base_url=settings.MEDIA_URL + 'chat_files/')
+        filename = fs.save(uploaded_file.name, uploaded_file)
+        file_url = fs.url(filename)
+        return JsonResponse({'file_url': file_url})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@csrf_exempt
+@login_required
+def update_profile(request):
+    if request.method == 'POST':
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        
+        if 'profile_pic' in request.FILES:
+            profile.profile_pic = request.FILES['profile_pic']
+            
+        if 'status_text' in request.POST:
+            profile.status_text = request.POST['status_text']
+            
+        profile.save()
+        return JsonResponse({
+            'status': 'success',
+            'profile_pic': profile.profile_pic.url if profile.profile_pic else None,
+            'status_text': profile.status_text
+        })
+    return JsonResponse({'error': 'Invalid request'}, status=400)

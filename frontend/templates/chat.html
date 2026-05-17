@@ -4,46 +4,173 @@
 
 {% block content %}
 <div class="chat-container">
-    <div class="chat-header">
-        <h2>.connect</h2>
-        <a href="{% url 'logout' %}" class="logout-btn" title="Logout">
-            <span>🚪</span> Logout
-        </a>
-    </div>
     
-    <div class="chat-main">
-
-    <div class="user-list" id="userList">
-        <div class="user-list-header">
-            <span>👥</span> Users
-        </div>
-        {% for user in users %}
-        <div class="user-item" data-user-id="{{ user.id }}">
-            <span>{{ user.username }}</span>
-        </div>
-        {% empty %}
-        <div class="user-item" style="cursor: default; opacity: 0.6;">
-            <span>No other users</span>
-        </div>
-        {% endfor %}
-    </div>
-    
-    <div class="chat-area">
-        <div class="chat-header-secondary" id="chatHeader">
-            <span style="margin-right: 8px;">💬</span>
-            Select a user to chat
-        </div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="empty-state">
-                <div class="empty-state-icon">💬</div>
-                <p>Select a user from the sidebar to start chatting</p>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="current-user-profile" style="display: flex; align-items: center; gap: 10px;">
+                {% if current_profile.profile_pic %}
+                <img src="{{ current_profile.profile_pic.url }}" alt="Profile" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                {% else %}
+                <div class="user-avatar" style="width: 32px; height: 32px; font-size: 14px;">
+                    {{ request.user.username|make_list|first|upper }}
+                </div>
+                {% endif %}
+                <h2>.connect</h2>
+            </div>
+            <div class="sidebar-actions">
+                <button class="icon-btn" id="settingsBtn" title="Settings">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+                <a href="{% url 'logout' %}" class="icon-btn" title="Logout">
+                    <span class="material-symbols-outlined">logout</span>
+                </a>
             </div>
         </div>
-        <div class="chat-input">
-            <input type="text" id="messageInput" placeholder="Type your message..." disabled>
-            <button id="sendButton" disabled>Send</button>
+        
+        <div class="search-container">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input type="text" class="search-input" placeholder="Search conversations...">
         </div>
+        
+        <div class="user-list" id="userList">
+            {% for user in users %}
+            <div class="user-item" data-user-id="{{ user.id }}">
+                <div class="user-avatar">
+                    {% if user.profile_pic %}
+                    <img src="{{ user.profile_pic }}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                    {% else %}
+                    {{ user.username|make_list|first|upper }}
+                    {% endif %}
+                    <div class="status-indicator" style="background: {% if user.is_online %}#22c55e{% else %}transparent{% endif %};"></div>
+                </div>
+                <div class="user-info">
+                    <div class="user-header-row">
+                        <span class="user-name">{{ user.username }}</span>
+                        <span class="last-msg-time">{{ user.last_message_time|date:"g:i A" }}</span>
+                    </div>
+                    <div class="user-last-msg">
+                        <p>{{ user.last_message }}</p>
+                        {% if user.unread_count > 0 %}
+                        <span class="unread-badge">{{ user.unread_count }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state" style="padding: 20px;">
+                <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-muted);">group_off</span>
+                <p style="margin-top: 10px; font-size: 14px;">No other users found</p>
+            </div>
+            {% endfor %}
         </div>
+    </div>
+    
+    <!-- Main Chat Area -->
+    <div class="chat-area" id="chatArea">
+        <div class="chat-header">
+            <div class="chat-header-info">
+                <button class="icon-btn mobile-back-btn" id="mobileBackBtn">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <div class="user-avatar" id="chatHeaderAvatar" style="display: none; width: 40px; height: 40px; font-size: 16px;"></div>
+                <div class="chat-header-details">
+                    <h3 id="chatHeader">Select a conversation</h3>
+                    <p id="chatHeaderStatus" style="display: none;">Online</p>
+                </div>
+            </div>
+            <div class="sidebar-actions">
+                <button class="icon-btn" id="audioCallBtn" title="Call">
+                    <span class="material-symbols-outlined">call</span>
+                </button>
+                <button class="icon-btn" id="videoCallBtn" title="Video Call">
+                    <span class="material-symbols-outlined">videocam</span>
+                </button>
+                <button class="icon-btn" title="More Info">
+                    <span class="material-symbols-outlined">info</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="empty-state">
+                <span class="material-symbols-outlined empty-state-icon">forum</span>
+                <h3>Welcome to .connect</h3>
+                <p style="margin-top: 8px;">Select a user from the sidebar to start chatting</p>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <button class="input-action" id="attachBtn" title="Attach file" disabled>
+                    <span class="material-symbols-outlined">attach_file</span>
+                </button>
+                <input type="file" id="fileInput" style="display: none;" accept="image/*,video/*,.pdf,.doc,.docx">
+                <input type="text" id="messageInput" placeholder="Type a message..." disabled>
+                <button class="input-action" id="emojiBtn" title="Emoji">
+                    <span class="material-symbols-outlined">sentiment_satisfied</span>
+                </button>
+                <button id="sendButton" class="btn-send" disabled>
+                    <span class="material-symbols-outlined">send</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>⚙️ Profile Settings</h3>
+            <button class="icon-btn close-btn" id="closeSettingsBtn"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="modal-body">
+
+            <!-- Profile Pic Upload -->
+            <div class="profile-pic-upload-area">
+                <div class="profile-pic-wrapper" id="profilePicWrapper">
+                    {% if current_profile.profile_pic %}
+                    <img id="settingsProfilePicPreview" src="{{ current_profile.profile_pic.url }}" alt="Profile">
+                    {% else %}
+                    <div class="user-avatar" id="settingsProfilePicPreviewText" style="width:100%;height:100%;font-size:40px;border-radius:50%;">
+                        {{ request.user.username|make_list|first|upper }}
+                    </div>
+                    {% endif %}
+                    <label for="profilePicInput" class="profile-pic-overlay" title="Change photo">
+                        <span class="material-symbols-outlined">photo_camera</span>
+                        <span>Change</span>
+                    </label>
+                </div>
+                <input type="file" id="profilePicInput" style="display:none;" accept="image/*">
+                <p class="profile-username-label">{{ request.user.username }}</p>
+            </div>
+
+            <!-- Status Text -->
+            <div class="settings-field">
+                <label class="settings-label">
+                    <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">mood</span>
+                    Status
+                </label>
+                <input type="text" id="statusTextInput" class="settings-input" placeholder="What's on your mind?" value="{{ current_profile.status_text }}" maxlength="100">
+                <p class="settings-hint">This shows under your name in chats</p>
+            </div>
+
+            <!-- Save Button -->
+            <button id="saveProfileBtn" class="btn-save-profile">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Calling Modal -->
+<div id="callingModal" class="modal">
+    <div class="modal-content" style="text-align: center; max-width: 320px; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.1);">
+        <div class="user-avatar pulse-anim" id="callingAvatar" style="width: 80px; height: 80px; font-size: 32px; margin: 20px auto;"></div>
+        <h3 id="callingName" style="margin-bottom: 8px;">Calling...</h3>
+        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 40px;">Connecting via .connect</p>
+        <button id="endCallBtn" class="btn-primary" style="background: #ef4444; width: 64px; height: 64px; border-radius: 50%; padding: 0; margin: 0 auto; box-shadow: 0 4px 14px rgba(239,68,68,0.4);">
+            <span class="material-symbols-outlined" style="font-size: 32px;">call_end</span>
+        </button>
     </div>
 </div>
 

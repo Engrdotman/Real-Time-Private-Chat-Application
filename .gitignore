@@ -1,0 +1,64 @@
+# =============================================================================
+# .gitignore for .connect Django Chat App
+# =============================================================================
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ---- Django ----
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# ---- Media files (user uploads — never commit these) ----
+media/
+
+# ---- Static files collected by collectstatic ----
+staticfiles/
+static_root/
+
+# ---- Virtual Environments ----
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Secrets / Environment Variables ----
+.env
+.env.*
+!.env.example
+secrets.json
+
+# ---- IDE / Editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+
+# ---- Node / npm (if any frontend tooling is added later) ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Coverage / Testing ----
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+
+# ---- Distribution / Packaging ----
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
