@@ -693,3 +693,18 @@ body {
     cursor: not-allowed;
     transform: none;
 }
+
+/* My Status Widget styling & interactive states */
+.my-status-item {
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease, box-shadow 0.3s ease !important;
+}
+
+.my-status-item:hover {
+    background: rgba(99, 102, 241, 0.08) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.06);
+}
+
+.my-status-item:active {
+    transform: translateY(0);
+}

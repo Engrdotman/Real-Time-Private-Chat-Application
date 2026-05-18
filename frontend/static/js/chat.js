@@ -147,7 +147,9 @@ function connectWebSocket(userId) {
                 }
             }
             if (currentChatUserId == data.user_id) {
-                document.getElementById('chatHeaderStatus').textContent = data.is_online ? 'Online' : 'Offline';
+                const statusText = userItem ? userItem.dataset.statusText || '' : '';
+                const statusString = data.is_online ? 'Online' : 'Offline';
+                document.getElementById('chatHeaderStatus').textContent = statusText ? `${statusString} • ${statusText}` : statusString;
             }
         } else if (action === 'read_receipt') {
             data.message_ids.forEach(id => {
@@ -220,8 +222,16 @@ document.addEventListener('DOMContentLoaded', function() {
             chatHeaderAvatar.style.display = 'flex';
             chatHeaderAvatar.textContent = username.charAt(0).toUpperCase();
             
-            const isOnline = this.querySelector('.status-indicator').style.background === 'rgb(34, 197, 94)'; // roughly #22c55e
-            chatHeaderStatus.textContent = isOnline ? 'Online' : 'Offline';
+            const statusIndicator = this.querySelector('.status-indicator');
+            const isOnline = statusIndicator && (
+                statusIndicator.style.background === 'rgb(34, 197, 94)' ||
+                statusIndicator.style.backgroundColor === 'rgb(34, 197, 94)' ||
+                statusIndicator.style.background === '#22c55e' ||
+                statusIndicator.style.backgroundColor === '#22c55e'
+            );
+            const statusText = this.dataset.statusText || '';
+            const statusString = isOnline ? 'Online' : 'Offline';
+            chatHeaderStatus.textContent = statusText ? `${statusString} • ${statusText}` : statusString;
             chatHeaderStatus.style.display = 'block';
 
             messageInput.disabled = false;
@@ -317,6 +327,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
             settingsModal.classList.add('active');
+        });
+    }
+
+    const myStatusBtn = document.getElementById('myStatusBtn');
+    if (myStatusBtn) {
+        myStatusBtn.addEventListener('click', () => {
+            if (settingsBtn) settingsBtn.click();
         });
     }
 
