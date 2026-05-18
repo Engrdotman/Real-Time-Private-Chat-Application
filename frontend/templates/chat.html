@@ -16,7 +16,10 @@
                     {{ request.user.username|make_list|first|upper }}
                 </div>
                 {% endif %}
-                <h2>.connect</h2>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <img src="{% static 'images/chatapp-logo.png' %}" alt=".connect" style="width: 28px; height: 28px; border-radius: 6px; object-fit: cover;">
+                    <h2>.connect</h2>
+                </div>
             </div>
             <div class="sidebar-actions">
                 <button class="icon-btn" id="settingsBtn" title="Settings">
