@@ -35,10 +35,29 @@
             <span class="material-symbols-outlined search-icon">search</span>
             <input type="text" class="search-input" placeholder="Search conversations...">
         </div>
+
+        <!-- Horizontal Stories Bar -->
+        <div class="stories-section" style="padding: 0 16px 14px; border-bottom: 1px solid var(--border-color); overflow-x: auto; display: flex; gap: 14px; align-items: center; scrollbar-width: none; -ms-overflow-style: none;">
+            <!-- My Story Add Button -->
+            <div class="story-item" id="addStoryBtn" style="display: flex; flex-direction: column; align-items: center; cursor: pointer; flex-shrink: 0; text-align: center;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; border: 2.5px dashed var(--primary-color); display: flex; align-items: center; justify-content: center; position: relative; background: var(--bg-sidebar); transition: all 0.2s;">
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: var(--primary-color);">add_a_photo</span>
+                    <div style="position: absolute; bottom: -2px; right: -2px; background: var(--primary-color); border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg-sidebar);">
+                        <span class="material-symbols-outlined" style="font-size: 10px; color: white; font-weight: bold;">add</span>
+                    </div>
+                </div>
+                <span style="font-size: 9.5px; color: var(--text-secondary); margin-top: 5px; font-weight: 600; width: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Post Story</span>
+            </div>
+            
+            <!-- Dynamic Active Stories Container -->
+            <div id="activeStoriesContainer" style="display: flex; gap: 14px; align-items: center;">
+                <!-- Avatars with colorful gradient rings will render here dynamically -->
+            </div>
+        </div>
         
         <div class="user-list" id="userList">
             <!-- My Status Option -->
-            <div class="my-status-item" id="myStatusBtn" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin: 0 4px 12px; background: var(--hover-bg); border-radius: 12px; cursor: pointer; transition: transform 0.2s, background 0.2s;">
+            <div class="my-status-item" id="myStatusBtn" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin: 10px 4px 12px; background: var(--hover-bg); border-radius: 12px; cursor: pointer; transition: transform 0.2s, background 0.2s;">
                 <div class="user-avatar" style="width: 42px; height: 42px; border: 2.5px solid var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; background: var(--primary-color);">
                     {% if current_profile.profile_pic %}
                     <img id="myStatusAvatar" src="{{ current_profile.profile_pic.url }}" alt="My Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
@@ -92,6 +111,38 @@
                 <p style="margin-top: 10px; font-size: 14px;">No other users found</p>
             </div>
             {% endfor %}
+
+            <!-- Groups Section -->
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 16px 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span>Groups</span>
+                <button class="icon-btn" id="createGroupBtn" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;" title="Create Group">
+                    <span class="material-symbols-outlined" style="font-size: 16px; color: var(--primary-color);">add</span>
+                </button>
+            </div>
+            
+            <div class="group-list" id="groupList" style="padding: 0 4px;">
+                {% for group in groups %}
+                <div class="group-item" data-group-id="{{ group.id }}" style="display: flex; align-items: center; padding: 12px 16px; border-radius: 12px; cursor: pointer; transition: background 0.2s; gap: 12px; margin-bottom: 4px;">
+                    <div class="group-avatar" style="width: 40px; height: 40px; border-radius: 12px; background: var(--primary-color); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; overflow: hidden; flex-shrink: 0;">
+                        {% if group.avatar %}
+                        <img src="{{ group.avatar }}" alt="Group" style="width: 100%; height: 100%; object-fit: cover;">
+                        {% else %}
+                        {{ group.name|slice:":2"|upper }}
+                        {% endif %}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; font-size: 13.5px; color: var(--text-primary);">{{ group.name }}</div>
+                        <p style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 2px 0 0;">
+                            {{ group.description|default:"No description" }}
+                        </p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state" style="padding: 10px 16px;">
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Create a group to start collaborating!</p>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
     
@@ -130,7 +181,31 @@
         </div>
         
         <div class="chat-input-container">
-            <div class="chat-input-wrapper">
+            <div class="chat-input-wrapper" style="position: relative;">
+                <!-- Floating Emoji Picker -->
+                <div id="emojiPicker" class="emoji-picker-dropdown" style="display: none; position: absolute; bottom: 65px; right: 20px; width: 280px; height: 220px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: var(--shadow-lg); z-index: 100; padding: 12px; flex-direction: column; backdrop-filter: blur(16px);">
+                    <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 6px; font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+                        <span>Insert Emoji</span>
+                    </div>
+                    <div class="emoji-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; overflow-y: auto; flex: 1; font-size: 20px; cursor: pointer; padding-right: 4px;">
+                        <!-- Smileys -->
+                        <span>😀</span><span>😃</span><span>😄</span><span>😁</span><span>😆</span><span>😅</span><span>😂</span>
+                        <span>🤣</span><span>😊</span><span>😇</span><span>🙂</span><span>🙃</span><span>😉</span><span>😌</span>
+                        <span>😍</span><span>🥰</span><span>😘</span><span>😗</span><span>😙</span><span>😚</span><span>😋</span>
+                        <span>😛</span><span>😝</span><span>😜</span><span>🤪</span><span>🤨</span><span>🧐</span><span>🤓</span>
+                        <span>😎</span><span>🥸</span><span>🤩</span><span>🥳</span><span>😏</span><span>😒</span><span>😞</span>
+                        <span>😔</span><span>😟</span><span>😕</span><span>🙁</span><span>☹️</span><span>😣</span><span>😖</span>
+                        <span>😫</span><span>😩</span><span>🥺</span><span>😢</span><span>😭</span><span>😤</span><span>😠</span>
+                        <!-- Hearts & Gestures -->
+                        <span>❤️</span><span>🧡</span><span>💛</span><span>💚</span><span>💙</span><span>💜</span><span>🖤</span>
+                        <span>🤍</span><span>🤎</span><span>💔</span><span>❣️</span><span>💕</span><span>💞</span><span>💓</span>
+                        <span>💗</span><span>💖</span><span>💘</span><span>💝</span><span>💟</span><span>👍</span><span>👎</span>
+                        <span>👌</span><span>🤌</span><span>🤏</span><span>✌️</span><span>🤞</span><span>🤟</span><span>🤘</span>
+                        <span>🤙</span><span>👈</span><span>👉</span><span>👆</span><span>🖕</span><span>👇</span><span>☝️</span>
+                        <span>👍</span><span>👏</span><span>🙌</span><span>👐</span><span>🤲</span><span>🤝</span><span>🙏</span>
+                    </div>
+                </div>
+
                 <button class="input-action" id="attachBtn" title="Attach file" disabled>
                     <span class="material-symbols-outlined">attach_file</span>
                 </button>
@@ -200,6 +275,109 @@
         <button id="endCallBtn" class="btn-primary" style="background: #ef4444; width: 64px; height: 64px; border-radius: 50%; padding: 0; margin: 0 auto; box-shadow: 0 4px 14px rgba(239,68,68,0.4);">
             <span class="material-symbols-outlined" style="font-size: 32px;">call_end</span>
         </button>
+    </div>
+</div>
+
+<!-- Create Group Modal -->
+<div id="createGroupModal" class="modal">
+    <div class="modal-content" style="max-width: 440px;">
+        <div class="modal-header">
+            <h3>👥 Create New Group</h3>
+            <button class="icon-btn close-btn" id="closeCreateGroupBtn"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="settings-field">
+                <label class="settings-label">Group Name</label>
+                <input type="text" id="groupNameInput" class="settings-input" placeholder="e.g. Project Team" required>
+            </div>
+            <div class="settings-field">
+                <label class="settings-label">Description</label>
+                <input type="text" id="groupDescInput" class="settings-input" placeholder="Brief group purpose...">
+            </div>
+            <div class="settings-field">
+                <label class="settings-label">Group Avatar</label>
+                <input type="file" id="groupAvatarInput" class="settings-input" accept="image/*">
+            </div>
+            
+            <div class="settings-field">
+                <label class="settings-label" style="margin-bottom: 8px;">Select Group Members</label>
+                <div id="groupMembersList" style="max-height: 140px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: var(--bg-input);">
+                    {% for user in users %}
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" name="group_members" value="{{ user.id }}" id="chk_member_{{ user.id }}" style="width: 16px; height: 16px; accent-color: var(--primary-color);">
+                        <label for="chk_member_{{ user.id }}" style="font-size: 13.5px; color: var(--text-primary); cursor: pointer;">{{ user.username }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <button id="submitCreateGroupBtn" class="btn-save-profile" style="margin-top: 15px;">Create Group</button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Story Modal -->
+<div id="uploadStoryModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3>📸 Post Status Story</h3>
+            <button class="icon-btn close-btn" id="closeUploadStoryBtn"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="settings-field">
+                <label class="settings-label">Select Photo</label>
+                <input type="file" id="storyImageInput" class="settings-input" accept="image/*" required>
+            </div>
+            <div class="settings-field">
+                <label class="settings-label">Caption</label>
+                <input type="text" id="storyCaptionInput" class="settings-input" placeholder="Say something about this photo...">
+            </div>
+            <button id="submitStoryBtn" class="btn-save-profile" style="margin-top: 15px;">Share Story</button>
+        </div>
+    </div>
+</div>
+
+<!-- Story Viewer Modal -->
+<div id="storyViewerModal" class="modal">
+    <div class="modal-content" style="max-width: 460px; padding: 0; background: #0f172a; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: rgba(0,0,0,0.6); border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="storyViewerAvatar" src="" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);">
+                <div>
+                    <div id="storyViewerUsername" style="font-weight: 600; font-size: 13.5px; color: white;">Username</div>
+                    <div id="storyViewerTime" style="font-size: 11px; color: #94a3b8;">Time</div>
+                </div>
+            </div>
+            <button class="icon-btn" id="closeStoryViewerBtn" style="color: white; background: rgba(255,255,255,0.08); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;"><span class="material-symbols-outlined" style="font-size: 18px;">close</span></button>
+        </div>
+        
+        <div style="position: relative; width: 100%; aspect-ratio: 4/5; background: black; display: flex; align-items: center; justify-content: center;">
+            <img id="storyViewerImage" src="" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+            <div id="storyViewerCaption" style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 24px 16px 16px; color: white; font-size: 13.5px; text-align: center;">
+                Caption
+            </div>
+        </div>
+        
+        <div style="padding: 16px; background: #1e293b; color: white;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 10px;">
+                <button id="storyLikeBtn" style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.08); border: none; border-radius: 20px; padding: 6px 12px; color: white; cursor: pointer; font-size: 12.5px; transition: background 0.2s;">
+                    <span class="material-symbols-outlined" id="storyLikeIcon" style="font-size: 16px; color: #ef4444;">favorite</span>
+                    <span id="storyLikesCount">0 Likes</span>
+                </button>
+                <div style="font-size: 11px; color: #94a3b8;">Tap photo to like ❤️</div>
+            </div>
+            
+            <div id="storyCommentsArea" style="max-height: 110px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; padding-right: 4px;">
+                <!-- Comments list -->
+            </div>
+            
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" id="storyCommentInput" style="flex: 1; padding: 8px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: #0f172a; color: white; font-size: 12.5px; outline: none;" placeholder="Write a reply...">
+                <button id="storySendCommentBtn" style="background: var(--primary-color); border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">send</span>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 

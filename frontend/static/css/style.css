@@ -708,3 +708,12 @@ body {
 .my-status-item:active {
     transform: translateY(0);
 }
+
+/* Group item styling */
+.group-item:hover {
+    background: var(--hover-bg) !important;
+}
+
+.group-item.active {
+    background: var(--hover-bg) !important;
+}

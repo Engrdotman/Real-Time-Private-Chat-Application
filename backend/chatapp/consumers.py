@@ -3,7 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
 from django.db.models import Q
-from .models import Message, UserProfile
+from .models import Message, UserProfile, Group, GroupMessage
 
 
 class PrivateChatConsumer(AsyncWebsocketConsumer):
@@ -175,3 +175,93 @@ class PrivateChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def mark_messages_read(self, message_ids):
         Message.objects.filter(id__in=message_ids, receiver=self.user).update(is_read=True)
+
+
+class GroupChatConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope["user"]
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+
+        self.group_id = self.scope["url_route"]["kwargs"]["group_id"]
+        
+        is_member = await self.check_membership(self.user, self.group_id)
+        if not is_member:
+            await self.close()
+            return
+
+        self.room_group_name = f"group_{self.group_id}"
+
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message = data.get("message", "")
+        file_path = data.get("file_path", None)
+
+        if not message and not file_path:
+            return
+
+        saved_msg = await self.save_group_message(self.user, self.group_id, message, file_path)
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "group_chat_message",
+                "id": saved_msg.id,
+                "message": saved_msg.content,
+                "file_url": saved_msg.file.url if saved_msg.file else None,
+                "sender_id": self.user.id,
+                "sender_username": self.user.username,
+                "timestamp": saved_msg.timestamp.isoformat(),
+            }
+        )
+
+    async def group_chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            "action": "group_chat_message",
+            "id": event["id"],
+            "message": event["message"],
+            "file_url": event.get("file_url"),
+            "sender_id": event["sender_id"],
+            "sender_username": event["sender_username"],
+            "timestamp": event["timestamp"],
+        }))
+
+    @database_sync_to_async
+    def check_membership(self, user, group_id):
+        try:
+            group = Group.objects.get(id=group_id)
+            return group.members.filter(id=user.id).exists()
+        except Group.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def save_group_message(self, sender, group_id, content, file_path=None):
+        try:
+            group = Group.objects.get(id=group_id)
+            msg = GroupMessage.objects.create(
+                group=group,
+                sender=sender,
+                content=content,
+            )
+            if file_path:
+                msg.file.name = file_path
+                msg.save()
+            return msg
+        except Exception as e:
+            print(f"Error saving group message: {e}")
+            raise e

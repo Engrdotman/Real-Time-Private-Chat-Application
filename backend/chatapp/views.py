@@ -118,8 +118,17 @@ def chat_view(request, user_id=None):
         reverse=True
     )
 
+    my_groups = Group.objects.filter(members=request.user)
+    groups_data = [{
+        'id': g.id,
+        'name': g.name,
+        'description': g.description,
+        'avatar': g.avatar.url if g.avatar else None,
+    } for g in my_groups]
+
     return render(request, 'chat.html', {
         'users': user_data,
+        'groups': groups_data,
         'selected_user_id': user_id,
         'current_profile': current_profile,
     })
@@ -187,5 +196,162 @@ def update_profile(request):
             'status': 'success',
             'profile_pic': profile.profile_pic.url if profile.profile_pic else None,
             'status_text': profile.status_text,
+        })
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+from datetime import timedelta
+from django.utils import timezone
+from .models import Group, GroupMessage, StatusStory, StoryComment
+
+@csrf_exempt
+@login_required
+def create_group(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        description = request.POST.get('description', '')
+        members_raw = request.POST.getlist('members')
+        
+        if not name:
+            return JsonResponse({'error': 'Group name is required'}, status=400)
+            
+        group = Group.objects.create(name=name, description=description, created_by=request.user)
+        group.members.add(request.user)
+        for m_id in members_raw:
+            try:
+                user = User.objects.get(id=m_id)
+                group.members.add(user)
+            except User.DoesNotExist:
+                pass
+                
+        if 'avatar' in request.FILES:
+            group.avatar = request.FILES['avatar']
+            group.save()
+            
+        return JsonResponse({
+            'status': 'success',
+            'group': {
+                'id': group.id,
+                'name': group.name,
+                'description': group.description,
+                'avatar': group.avatar.url if group.avatar else None,
+            }
+        })
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@login_required
+def get_group_messages(request, group_id):
+    group = get_object_or_404(Group, id=group_id, members=request.user)
+    messages = group.messages.all().order_by('timestamp')
+    
+    messages_data = [{
+        'id': msg.id,
+        'sender_id': msg.sender.id,
+        'sender_username': msg.sender.username,
+        'content': msg.content,
+        'file_url': msg.file.url if msg.file else None,
+        'timestamp': msg.timestamp.isoformat(),
+    } for msg in messages]
+    
+    return JsonResponse({'messages': messages_data})
+
+
+@csrf_exempt
+@login_required
+def upload_story(request):
+    if request.method == 'POST' and request.FILES.get('image'):
+        image = request.FILES['image']
+        caption = request.POST.get('caption', '')
+        
+        story = StatusStory.objects.create(user=request.user, image=image, caption=caption)
+        
+        return JsonResponse({
+            'status': 'success',
+            'story': {
+                'id': story.id,
+                'image': story.image.url,
+                'caption': story.caption,
+                'timestamp': story.timestamp.isoformat(),
+            }
+        })
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@login_required
+def get_active_stories(request):
+    time_threshold = timezone.now() - timedelta(hours=24)
+    stories = StatusStory.objects.filter(timestamp__gte=time_threshold).order_by('-timestamp')
+    
+    stories_data = []
+    for story in stories:
+        liked_by_me = story.likes.filter(id=request.user.id).exists()
+        comments = [{
+            'id': c.id,
+            'username': c.user.username,
+            'content': c.content,
+            'timestamp': c.timestamp.isoformat(),
+        } for c in story.comments.all()]
+        
+        stories_data.append({
+            'id': story.id,
+            'user_id': story.user.id,
+            'username': story.user.username,
+            'user_avatar': story.user.profile.profile_pic.url if hasattr(story.user, 'profile') and story.user.profile.profile_pic else None,
+            'image': story.image.url,
+            'caption': story.caption,
+            'timestamp': story.timestamp.isoformat(),
+            'likes_count': story.likes.count(),
+            'liked_by_me': liked_by_me,
+            'comments': comments,
+        })
+        
+    return JsonResponse({'stories': stories_data})
+
+
+@csrf_exempt
+@login_required
+def toggle_like_story(request, story_id):
+    if request.method == 'POST':
+        story = get_object_or_404(StatusStory, id=story_id)
+        if story.likes.filter(id=request.user.id).exists():
+            story.likes.remove(request.user)
+            liked = False
+        else:
+            story.likes.add(request.user)
+            liked = True
+        return JsonResponse({
+            'status': 'success',
+            'liked': liked,
+            'likes_count': story.likes.count(),
+        })
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+@csrf_exempt
+@login_required
+def comment_on_story(request, story_id):
+    if request.method == 'POST':
+        import json
+        try:
+            data = json.loads(request.body)
+            content = data.get('content')
+        except Exception:
+            content = request.POST.get('content')
+            
+        if not content:
+            return JsonResponse({'error': 'Comment content is required'}, status=400)
+            
+        story = get_object_or_404(StatusStory, id=story_id)
+        comment = StoryComment.objects.create(story=story, user=request.user, content=content)
+        
+        return JsonResponse({
+            'status': 'success',
+            'comment': {
+                'id': comment.id,
+                'username': comment.user.username,
+                'content': comment.content,
+                'timestamp': comment.timestamp.isoformat(),
+            }
         })
     return JsonResponse({'error': 'Invalid request'}, status=400)

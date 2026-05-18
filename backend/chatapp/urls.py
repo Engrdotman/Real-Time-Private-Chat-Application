@@ -11,4 +11,12 @@ urlpatterns = [
     path('signup/', views.signup_view, name='signup'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    # Group Chats
+    path('api/groups/create/', views.create_group, name='create_group'),
+    path('api/groups/<int:group_id>/messages/', views.get_group_messages, name='get_group_messages'),
+    # Status Stories
+    path('api/stories/create/', views.upload_story, name='upload_story'),
+    path('api/stories/', views.get_active_stories, name='get_active_stories'),
+    path('api/stories/<int:story_id>/like/', views.toggle_like_story, name='toggle_like_story'),
+    path('api/stories/<int:story_id>/comment/', views.comment_on_story, name='comment_on_story'),
 ]
