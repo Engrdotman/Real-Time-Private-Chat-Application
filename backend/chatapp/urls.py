@@ -2,10 +2,14 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.chat_view, name='chat'),
-    path('chat/<int:user_id>/', views.chat_view, name='private_chat'),
+    path('', views.react_app, name='react_app'),
+    path('legacy/', views.chat_view, name='chat'),
+    path('legacy/chat/<int:user_id>/', views.chat_view, name='private_chat'),
     path('api/messages/<int:user_id>/', views.get_messages, name='get_messages'),
     path('api/users/', views.get_users, name='get_users'),
+    path('api/session/', views.api_session, name='api_session'),
+    path('api/auth/login/', views.api_login, name='api_login'),
+    path('api/auth/signup/', views.api_signup, name='api_signup'),
     path('api/upload/', views.upload_attachment, name='upload_attachment'),
     path('api/profile/update/', views.update_profile, name='update_profile'),
     path('signup/', views.signup_view, name='signup'),

@@ -1,8 +1,11 @@
+import json
+from pathlib import Path
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.conf import settings
@@ -10,6 +13,141 @@ from django.core.files.storage import FileSystemStorage
 from django.views.decorators.csrf import csrf_exempt
 from .forms import SignUpForm, LoginForm
 from .models import Message, UserProfile
+
+
+def react_app(request):
+    index_path = Path(settings.BASE_DIR).parent / 'frontend' / 'static' / 'react' / 'index.html'
+    if index_path.exists():
+        return HttpResponse(index_path.read_text(encoding='utf-8'))
+    return JsonResponse({
+        'error': 'React build not found. Run "npm run build" inside the frontend folder.'
+    }, status=503)
+
+
+def _profile_payload(user):
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    return {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'is_online': profile.is_online,
+        'profile_pic': profile.profile_pic.url if profile.profile_pic else None,
+        'status_text': profile.status_text,
+        'last_seen': profile.last_seen.isoformat() if profile.last_seen else None,
+    }
+
+
+def _chat_bootstrap_payload(request):
+    current_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    all_users = User.objects.exclude(id=request.user.id)
+
+    users_data = []
+    for u in all_users:
+        profile, _ = UserProfile.objects.get_or_create(user=u)
+        last_msg = Message.objects.filter(
+            Q(sender=request.user, receiver=u) | Q(sender=u, receiver=request.user)
+        ).order_by('-timestamp').first()
+        unread_count = Message.objects.filter(
+            sender=u, receiver=request.user, is_read=False
+        ).count()
+
+        if last_msg and last_msg.content:
+            last_msg_text = last_msg.content
+        elif last_msg and last_msg.file:
+            last_msg_text = 'Attachment'
+        else:
+            last_msg_text = f'Say hi to {u.username}'
+
+        users_data.append({
+            'id': u.id,
+            'username': u.username,
+            'is_online': profile.is_online,
+            'profile_pic': profile.profile_pic.url if profile.profile_pic else None,
+            'status_text': profile.status_text,
+            'last_seen': profile.last_seen.isoformat() if profile.last_seen else None,
+            'last_message': last_msg_text,
+            'last_message_time': last_msg.timestamp.isoformat() if last_msg else None,
+            'unread_count': unread_count,
+        })
+
+    users_data.sort(key=lambda x: x['last_message_time'] or '', reverse=True)
+
+    my_groups = Group.objects.filter(members=request.user)
+    groups_data = [{
+        'id': g.id,
+        'name': g.name,
+        'description': g.description,
+        'avatar': g.avatar.url if g.avatar else None,
+    } for g in my_groups]
+
+    return {
+        'current_user': _profile_payload(request.user),
+        'current_profile': {
+            'profile_pic': current_profile.profile_pic.url if current_profile.profile_pic else None,
+            'status_text': current_profile.status_text,
+        },
+        'users': users_data,
+        'groups': groups_data,
+    }
+
+
+@csrf_exempt
+def api_signup(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        data = request.POST
+
+    form = SignUpForm(data)
+    if not form.is_valid():
+        return JsonResponse({'errors': form.errors}, status=400)
+
+    user = form.save(commit=False)
+    user.set_password(form.cleaned_data['password'])
+    user.save()
+    UserProfile.objects.get_or_create(user=user)
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    return JsonResponse({'status': 'success', 'user': _profile_payload(user)})
+
+
+@csrf_exempt
+def api_login(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        data = request.POST
+
+    username = data.get('username', '')
+    password = data.get('password', '')
+    remember_me = data.get('remember_me', False)
+    user = authenticate(request, username=username, password=password)
+
+    if user is None:
+        try:
+            user_obj = User.objects.get(email=username)
+            user = authenticate(request, username=user_obj.username, password=password)
+        except User.DoesNotExist:
+            pass
+
+    if user is None:
+        return JsonResponse({'error': 'Invalid email/username or password.'}, status=400)
+
+    login(request, user)
+    if not remember_me:
+        request.session.set_expiry(0)
+    return JsonResponse({'status': 'success', 'user': _profile_payload(user)})
+
+
+def api_session(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'authenticated': False}, status=401)
+    return JsonResponse(_chat_bootstrap_payload(request))
 
 
 def signup_view(request):

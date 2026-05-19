@@ -45,14 +45,7 @@ class PrivateChatConsumer(AsyncWebsocketConsumer):
             for msg in msgs:
                 await self.send(text_data=json.dumps({
                     "action": "chat_message",
-                    "id": msg.id,
-                    "message": msg.content,
-                    "file_url": msg.file.url if msg.file else None,
-                    "sender_id": msg.sender.id,
-                    "sender_username": msg.sender.username,
-                    "receiver_id": msg.receiver.id,
-                    "timestamp": msg.timestamp.isoformat(),
-                    "is_read": msg.is_read,
+                    **msg,
                 }))
         except Exception as e:
             print(f"Error loading message history: {e}")
@@ -86,6 +79,18 @@ class PrivateChatConsumer(AsyncWebsocketConsumer):
                         "reader_id": self.user.id,
                     }
                 )
+            return
+
+        if action == "typing":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "typing_indicator",
+                    "user_id": self.user.id,
+                    "username": self.user.username,
+                    "is_typing": data.get("is_typing", False),
+                }
+            )
             return
 
         # Handle chat message
@@ -139,6 +144,14 @@ class PrivateChatConsumer(AsyncWebsocketConsumer):
             "reader_id": event["reader_id"],
         }))
 
+    async def typing_indicator(self, event):
+        await self.send(text_data=json.dumps({
+            "action": "typing",
+            "user_id": event["user_id"],
+            "username": event["username"],
+            "is_typing": event["is_typing"],
+        }))
+
     # ── DB helpers ──────────────────────────────────────────────────────────
 
     @database_sync_to_async
@@ -159,12 +172,21 @@ class PrivateChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_message_history(self):
-        return list(
-            Message.objects.filter(
-                Q(sender=self.user, receiver=self.other_user) |
-                Q(sender=self.other_user, receiver=self.user)
-            ).order_by("timestamp")[:50]
-        )
+        messages = Message.objects.select_related("sender", "receiver").filter(
+            Q(sender=self.user, receiver=self.other_user) |
+            Q(sender=self.other_user, receiver=self.user)
+        ).order_by("timestamp")[:50]
+
+        return [{
+            "id": msg.id,
+            "message": msg.content,
+            "file_url": msg.file.url if msg.file else None,
+            "sender_id": msg.sender.id,
+            "sender_username": msg.sender.username,
+            "receiver_id": msg.receiver.id,
+            "timestamp": msg.timestamp.isoformat(),
+            "is_read": msg.is_read,
+        } for msg in messages]
 
     @database_sync_to_async
     def set_online_status(self, is_online):

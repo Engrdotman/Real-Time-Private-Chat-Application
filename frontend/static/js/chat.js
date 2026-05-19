@@ -221,10 +221,11 @@ function loadMessageHistory(userId) {
         });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+function initChatApp() {
     const messageInput = document.getElementById("messageInput");
     const sendButton = document.getElementById("sendButton");
     const userListItems = document.querySelectorAll('.user-item');
+    const groupListItems = document.querySelectorAll('.group-item');
     const chatHeader = document.getElementById('chatHeader');
     const sidebar = document.getElementById('sidebar');
     const mobileBackBtn = document.getElementById('mobileBackBtn');
@@ -250,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if(unreadBadge) unreadBadge.remove();
 
             userListItems.forEach(i => i.classList.remove('active'));
-            if (typeof groupListItems !== 'undefined') groupListItems.forEach(i => i.classList.remove('active'));
+            groupListItems.forEach(i => i.classList.remove('active'));
             this.classList.add('active');
 
             chatHeader.textContent = username;
@@ -483,7 +484,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (endCallBtn) endCallBtn.addEventListener('click', endCall);
 
     // Group Chat Click Handlers
-    const groupListItems = document.querySelectorAll('.group-item');
     groupListItems.forEach(item => {
         item.addEventListener('click', function() {
             const groupId = this.dataset.groupId;
@@ -807,4 +807,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     loadStories();
 
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initChatApp);
+} else {
+    initChatApp();
+}
