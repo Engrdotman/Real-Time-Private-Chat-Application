@@ -1,11 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => ({
   plugins: [react()],
-  // In dev, use "/" so the app is reachable at http://127.0.0.1:5173/
-  // In build, use "/static/react/" so Django can serve assets from that path
-  base: command === "build" ? "/static/react/" : "/",
+  // dev  → "/"            (Vite dev server at localhost)
+  // build for Vercel → "/"  (served from domain root)
+  // build for Django → "/static/react/"  (set VITE_TARGET=django)
+  base: command === "build" && process.env.VITE_TARGET === "django"
+    ? "/static/react/"
+    : "/",
   build: {
     outDir: "static/react",
     emptyOutDir: true,
