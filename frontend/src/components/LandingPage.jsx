@@ -1,35 +1,46 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import {
-  ArrowRight,
-  Mic,
-  MessageSquare,
-  UsersRound,
-  Video,
-  Zap,
-  Lock,
-  Activity,
-  Play,
-  ChevronRight,
-  Globe,
-  ChevronDown,
+  ArrowRight, Mic, MessageSquare, UsersRound, Video,
+  Zap, Lock, Activity, Play, ChevronRight, Globe, ChevronDown,
 } from "lucide-react";
 
-// --- Design System Constants ---
-const COLORS = { primary: "#14B8A6" };
-
+// ─── Motion Variants ────────────────────────────────────────────────────────
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0, y: 32 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
 };
-
-const staggerContainer = {
+const fadeIn = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
+  visible: { opacity: 1, transition: { duration: 0.8, ease: "easeOut" } },
+};
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
+};
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
 };
 
-// --- Sub-Components ---
+// ─── Scroll-aware section reveal ────────────────────────────────────────────
+function RevealSection({ children, className = "" }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={isInView ? "visible" : "hidden"}
+      variants={fadeUp}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
+// ─── Typewriter ─────────────────────────────────────────────────────────────
 function Typewriter({ texts }) {
   const [index, setIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
@@ -38,58 +49,51 @@ function Typewriter({ texts }) {
 
   useEffect(() => {
     const handleType = () => {
-      const currentFullText = texts[index % texts.length];
+      const full = texts[index % texts.length];
       if (isDeleting) {
-        setDisplayText(currentFullText.substring(0, displayText.length - 1));
-        setSpeed(50);
+        setDisplayText(full.substring(0, displayText.length - 1));
+        setSpeed(45);
       } else {
-        setDisplayText(currentFullText.substring(0, displayText.length + 1));
-        setSpeed(100);
+        setDisplayText(full.substring(0, displayText.length + 1));
+        setSpeed(95);
       }
-      if (!isDeleting && displayText === currentFullText) {
-        setTimeout(() => setIsDeleting(true), 2000);
-      } else if (isDeleting && displayText === "") {
-        setIsDeleting(false);
-        setIndex(index + 1);
-        setSpeed(500);
-      }
+      if (!isDeleting && displayText === full) setTimeout(() => setIsDeleting(true), 2200);
+      else if (isDeleting && displayText === "") { setIsDeleting(false); setIndex(index + 1); setSpeed(480); }
     };
-    const timer = setTimeout(handleType, speed);
-    return () => clearTimeout(timer);
+    const t = setTimeout(handleType, speed);
+    return () => clearTimeout(t);
   }, [displayText, isDeleting, index, texts, speed]);
 
   return (
-    <span className="text-teal-400">
+    <span className="text-teal-400 drop-shadow-[0_0_12px_rgba(20,184,166,0.5)]">
       {displayText}
       <motion.span
         animate={{ opacity: [1, 0] }}
-        transition={{ duration: 0.8, repeat: Infinity }}
-        className="inline-block w-[3px] h-[1em] bg-teal-400 ml-1 translate-y-1"
+        transition={{ duration: 0.75, repeat: Infinity, ease: "easeInOut" }}
+        className="inline-block w-[2px] h-[0.9em] bg-teal-400 ml-[3px] translate-y-[2px] rounded-full"
       />
     </span>
   );
 }
 
+// ─── Animated network dots ───────────────────────────────────────────────────
 function NetworkBackground() {
   const dots = useRef(
-    [...Array(20)].map(() => ({
-      cx: `${10 + Math.random() * 80}%`,
-      cy: `${10 + Math.random() * 80}%`,
-      duration: 3 + Math.random() * 2,
+    [...Array(24)].map(() => ({
+      cx: `${8 + Math.random() * 84}%`,
+      cy: `${8 + Math.random() * 84}%`,
+      r: 1.2 + Math.random() * 1.4,
+      duration: 3.5 + Math.random() * 3,
+      delay: Math.random() * 3,
     }))
   );
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-      <svg className="w-full h-full" viewBox="0 0 800 800">
-        {dots.current.map((dot, i) => (
-          <motion.circle
-            key={i}
-            cx={dot.cx}
-            cy={dot.cy}
-            r="2"
-            fill={COLORS.primary}
-            animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 1.5, 1] }}
-            transition={{ duration: dot.duration, repeat: Infinity }}
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <svg className="w-full h-full opacity-[0.18]" viewBox="0 0 800 800">
+        {dots.current.map((d, i) => (
+          <motion.circle key={i} cx={d.cx} cy={d.cy} r={d.r} fill="#14B8A6"
+            animate={{ opacity: [0.15, 0.55, 0.15], scale: [1, 1.8, 1] }}
+            transition={{ duration: d.duration, repeat: Infinity, delay: d.delay }}
           />
         ))}
       </svg>
@@ -97,278 +101,301 @@ function NetworkBackground() {
   );
 }
 
+// ─── Stat Counter ────────────────────────────────────────────────────────────
 function StatCounter({ value, label }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
-  const [displayValue, setDisplayValue] = useState(0);
+  const [display, setDisplay] = useState(0);
 
   useEffect(() => {
-    if (isInView) {
-      const target = parseInt(value.replace(/,/g, ""));
-      let start = 0;
-      const increment = target / (2000 / 16);
-      const timer = setInterval(() => {
-        start += increment;
-        if (start >= target) { setDisplayValue(target); clearInterval(timer); }
-        else setDisplayValue(Math.floor(start));
-      }, 16);
-      return () => clearInterval(timer);
-    }
+    if (!isInView) return;
+    const target = parseInt(value.replace(/,/g, ""));
+    let start = 0;
+    const inc = target / (2000 / 16);
+    const t = setInterval(() => {
+      start += inc;
+      if (start >= target) { setDisplay(target); clearInterval(t); }
+      else setDisplay(Math.floor(start));
+    }, 16);
+    return () => clearInterval(t);
   }, [isInView, value]);
 
   return (
-    <div ref={ref} className="text-center">
-      <div className="text-4xl md:text-5xl font-bold text-white mb-2">
-        {displayValue.toLocaleString()}
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 24 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className="text-center group"
+    >
+      <div className="text-4xl md:text-5xl font-black text-white mb-2 tabular-nums
+                      drop-shadow-[0_0_20px_rgba(20,184,166,0.25)]
+                      group-hover:drop-shadow-[0_0_28px_rgba(20,184,166,0.45)]
+                      transition-all duration-500">
+        {display.toLocaleString()}
         {value.includes("+") ? "+" : value.includes("%") ? "%" : ""}
       </div>
-      <div className="text-slate-400 uppercase tracking-widest text-xs font-bold">{label}</div>
+      <div className="text-slate-500 uppercase tracking-[0.18em] text-[11px] font-bold">{label}</div>
+    </motion.div>
+  );
+}
+
+// ─── Section label + heading helper ─────────────────────────────────────────
+function SectionHeader({ eyebrow, heading, className = "" }) {
+  return (
+    <div className={`text-center ${className}`}>
+      <motion.p variants={fadeUp}
+        className="inline-flex items-center gap-2 text-teal-400 font-bold uppercase tracking-[0.2em] text-[11px] mb-5">
+        <span className="w-6 h-px bg-teal-400/60 inline-block" />
+        {eyebrow}
+        <span className="w-6 h-px bg-teal-400/60 inline-block" />
+      </motion.p>
+      <motion.h3 variants={fadeUp}
+        className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white">
+        {heading}
+      </motion.h3>
     </div>
   );
 }
 
-// --- Main Page Component ---
-
+// ─── Main Component ──────────────────────────────────────────────────────────
 export default function LandingPage({ logoUrl, onLogin, onSignup }) {
   const [scrolled, setScrolled] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const currentYear = new Date().getFullYear();
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const fn = () => setScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", fn, { passive: true });
+    return () => window.removeEventListener("scroll", fn);
   }, []);
 
   return (
-    <div className="landing-page min-h-screen bg-[#050816] text-white selection:bg-teal-500/30 font-sans">
+    <div className="landing-page min-h-screen bg-[#040b14] text-white selection:bg-teal-500/30 font-sans antialiased">
 
       {/* ── Navbar ── */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 ${
-        scrolled ? "py-3 bg-[#050816]/80 backdrop-blur-lg border-b border-white/5" : "py-4 bg-transparent"
-      }`}>
+      <motion.nav
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 px-4 sm:px-6 ${
+          scrolled
+            ? "py-3 bg-[#040b14]/75 backdrop-blur-2xl border-b border-white/[0.06] shadow-[0_1px_40px_rgba(0,0,0,0.4)]"
+            : "py-5 bg-transparent"
+        }`}
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-
-          {/* Logo — ".connect" with the dot styled */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center font-black text-[#050816] text-xl leading-none">
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-lg flex items-center justify-center font-black text-[#040b14] text-lg leading-none shadow-lg shadow-teal-500/30">
               .
             </div>
-            <span className="text-xl font-bold tracking-tight">
+            <span className="text-[1.15rem] font-bold tracking-tight">
               <span className="text-teal-400">.</span>connect
             </span>
           </div>
 
-          {/* Nav links */}
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
             {["Features", "Solutions", "About"].map((link) => (
-              <a key={link} href={`#${link.toLowerCase()}`} className="hover:text-teal-400 transition-colors">
+              <a key={link} href={`#${link.toLowerCase()}`}
+                className="relative py-1 hover:text-white transition-colors duration-200 after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px after:bg-teal-400 after:transition-all after:duration-300 hover:after:w-full">
                 {link}
               </a>
             ))}
           </div>
 
-          {/* Auth */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={onLogin} className="text-sm font-semibold hover:text-teal-400 transition-colors">
+          <div className="flex items-center gap-3 sm:gap-5">
+            <button onClick={onLogin}
+              className="text-sm font-semibold text-slate-300 hover:text-white transition-colors duration-200">
               Sign In
             </button>
-            <button
-              onClick={onSignup}
-              className="bg-teal-500 hover:bg-teal-400 text-[#050816] px-4 sm:px-5 py-2 rounded-full font-bold text-sm transition-all shadow-lg shadow-teal-500/20 active:scale-95 whitespace-nowrap"
-            >
+            <motion.button onClick={onSignup} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-[#040b14] px-5 py-2 rounded-full font-bold text-sm shadow-lg shadow-teal-500/25 whitespace-nowrap transition-all duration-200">
               Get Started
-            </button>
+            </motion.button>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
-      {/* ── Hero Section ── */}
-      <section className="relative min-h-screen flex items-center pt-20 pb-16 px-4 sm:px-6 overflow-hidden">
+      {/* ── Hero ── */}
+      <section ref={heroRef} className="relative min-h-screen flex items-center pt-24 pb-20 px-4 sm:px-6 overflow-hidden">
         <NetworkBackground />
 
-        {/* Mobile background image — blurred behind text */}
+        {/* Mobile blurred bg image */}
         <div className="absolute inset-0 lg:hidden">
-          <img
-            src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1200&q=80"
-            alt=""
-            className="w-full h-full object-cover opacity-20 blur-sm scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#050816]/60 via-[#050816]/70 to-[#050816]" />
+          <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1200&q=80"
+            alt="" className="w-full h-full object-cover opacity-[0.15] blur-md scale-110" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#040b14]/50 via-[#040b14]/65 to-[#040b14]" />
         </div>
 
-        {/* Ambient glows */}
-        <div className="absolute top-1/4 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-teal-500/10 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
+        {/* Layered ambient glows */}
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-teal-500/[0.07] blur-[140px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/3 -left-20 w-80 h-80 bg-teal-600/[0.08] blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-emerald-500/[0.07] blur-[120px] rounded-full pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
+        <motion.div style={{ y: heroY, opacity: heroOpacity }}
+          className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-14 lg:gap-20 items-center relative z-10">
 
-          {/* Left — copy */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="flex flex-col gap-6 text-center lg:text-left items-center lg:items-start"
-          >
-            {/* Badge — chat icon instead of sparkles */}
-            <motion.div
-              variants={fadeUp}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-teal-400 text-xs font-bold uppercase tracking-wider"
-            >
-              <MessageSquare size={14} /> The next generation of chat
+          {/* Copy */}
+          <motion.div initial="hidden" animate="visible" variants={stagger}
+            className="flex flex-col gap-7 text-center lg:text-left items-center lg:items-start">
+
+            <motion.div variants={fadeUp}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
+                         bg-teal-500/[0.08] border border-teal-500/20
+                         text-teal-400 text-[11px] font-bold uppercase tracking-[0.16em]
+                         shadow-[0_0_20px_rgba(20,184,166,0.08)]">
+              <MessageSquare size={13} strokeWidth={2.5} />
+              The next generation of chat
             </motion.div>
 
-            <motion.h1
-              variants={fadeUp}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]"
-            >
+            <motion.h1 variants={fadeUp}
+              className="text-[2.6rem] sm:text-5xl md:text-6xl lg:text-[4.25rem] font-black tracking-[-0.02em] leading-[1.08]">
               Everything You Need To{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-300
+                               drop-shadow-[0_0_40px_rgba(20,184,166,0.3)]">
                 Stay Connected.
               </span>
             </motion.h1>
 
-            <motion.div variants={fadeUp} className="text-lg sm:text-xl md:text-2xl font-medium text-slate-300">
+            <motion.div variants={fadeUp}
+              className="text-lg sm:text-xl md:text-2xl font-medium text-slate-300 leading-snug">
               Building{" "}
               <Typewriter texts={["meaningful conversations.", "stronger communities.", "seamless collaboration.", ".connect."]} />
             </motion.div>
 
-            <motion.p variants={fadeUp} className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-xl">
+            <motion.p variants={fadeUp}
+              className="text-slate-400 text-base sm:text-[1.05rem] leading-[1.75] max-w-lg">
               One platform for messaging, voice calls, video calls, communities, and real-time
               collaboration. Designed for high-velocity teams.
             </motion.p>
 
-            <motion.div variants={fadeUp} className="flex flex-wrap justify-center lg:justify-start gap-4">
-              <button
-                onClick={onSignup}
-                className="px-7 py-3.5 sm:px-8 sm:py-4 bg-teal-500 hover:bg-teal-400 text-[#050816] font-bold rounded-xl transition-all flex items-center gap-2 group shadow-xl shadow-teal-500/20 active:scale-95"
-              >
-                Get Started <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button className="px-7 py-3.5 sm:px-8 sm:py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl transition-all backdrop-blur-sm">
+            <motion.div variants={fadeUp} className="flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-4">
+              <motion.button onClick={onSignup} whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.97 }}
+                className="px-7 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-teal-500 to-emerald-500
+                           hover:from-teal-400 hover:to-emerald-400 text-[#040b14] font-bold rounded-xl
+                           flex items-center gap-2 group shadow-xl shadow-teal-500/25 transition-all duration-200">
+                Get Started
+                <ArrowRight size={18} strokeWidth={2.5} className="group-hover:translate-x-1 transition-transform duration-200" />
+              </motion.button>
+              <motion.button whileHover={{ scale: 1.03, y: -1 }} whileTap={{ scale: 0.97 }}
+                className="px-7 py-3.5 sm:px-8 sm:py-4 bg-white/[0.04] hover:bg-white/[0.08]
+                           border border-white/[0.1] hover:border-white/[0.18]
+                           text-white font-bold rounded-xl backdrop-blur-sm
+                           flex items-center gap-2 transition-all duration-200">
+                <Play size={16} fill="white" strokeWidth={0} />
                 Watch Demo
-              </button>
+              </motion.button>
             </motion.div>
           </motion.div>
 
-          {/* Right — mockup (desktop only) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1 }}
-            className="relative hidden lg:block"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/20 to-transparent rounded-3xl blur-3xl opacity-30" />
+          {/* Mockup — desktop only */}
+          <motion.div initial="hidden" animate="visible" variants={scaleIn}
+            className="relative hidden lg:block">
+            {/* Glow behind card */}
+            <div className="absolute inset-4 bg-gradient-to-tr from-teal-500/20 via-emerald-500/10 to-transparent rounded-3xl blur-2xl" />
 
-            {/* Floating notification */}
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-6 -left-6 z-20 p-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl min-w-[200px]"
-            >
+            {/* Floating notification card */}
+            <motion.div animate={{ y: [0, -12, 0] }} transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-7 -left-7 z-20 p-4 rounded-2xl min-w-[210px]
+                         bg-white/[0.06] backdrop-blur-2xl border border-white/[0.12]
+                         shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
-                  <MessageSquare size={20} />
+                <div className="w-10 h-10 rounded-full bg-teal-500/20 border border-teal-500/20 flex items-center justify-center text-teal-400 flex-shrink-0">
+                  <MessageSquare size={18} strokeWidth={2} />
                 </div>
                 <div>
-                  <div className="text-[10px] text-teal-400 font-bold uppercase">New Message</div>
+                  <div className="text-[10px] text-teal-400 font-bold uppercase tracking-wider mb-0.5">New Message</div>
                   <div className="text-sm font-semibold text-white">Sarah: Meeting in 5?</div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Floating audio bars */}
-            <motion.div
-              animate={{ y: [0, 15, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute bottom-10 -right-6 z-20 p-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
-            >
+            {/* Floating audio card */}
+            <motion.div animate={{ y: [0, 14, 0] }} transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+              className="absolute bottom-12 -right-7 z-20 p-4 rounded-2xl
+                         bg-white/[0.06] backdrop-blur-2xl border border-white/[0.12]
+                         shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]">
               <div className="flex items-center gap-4">
-                <div className="flex gap-1 items-end h-5">
-                  {[1, 2, 3].map((i) => (
-                    <motion.div
-                      key={i}
-                      animate={{ height: [8, 16, 8] }}
-                      transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
-                      className="w-1 bg-emerald-400 rounded-full"
-                    />
+                <div className="flex gap-[3px] items-end h-5">
+                  {[1, 2, 3, 4].map((i) => (
+                    <motion.div key={i} animate={{ height: [6, 18, 6] }}
+                      transition={{ duration: 0.55, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
+                      className="w-[3px] bg-gradient-to-t from-teal-500 to-emerald-400 rounded-full" />
                   ))}
                 </div>
-                <div className="text-sm font-mono font-bold text-emerald-400 tracking-tighter">12:34</div>
+                <div className="text-sm font-mono font-bold text-emerald-400 tracking-tight">Live · 12:34</div>
               </div>
             </motion.div>
 
-            {/* Main mockup */}
-            <div className="relative rounded-3xl border border-white/10 overflow-hidden shadow-2xl shadow-black/50 group">
-              <img
-                src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1200&q=80"
+            {/* Main mockup image */}
+            <div className="relative rounded-[1.75rem] border border-white/[0.1] overflow-hidden
+                            shadow-[0_32px_80px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)] group">
+              <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1200&q=80"
                 alt="Product View"
-                className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050816] via-transparent to-transparent" />
+                className="w-full h-full object-cover grayscale-[0.15] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-[1.04]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#040b14] via-[#040b14]/10 to-transparent" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 hover:scale-110 transition-transform cursor-pointer">
-                  <Play fill="white" size={24} />
-                </div>
+                <motion.div whileHover={{ scale: 1.12 }} whileTap={{ scale: 0.95 }}
+                  className="w-16 h-16 bg-white/[0.12] backdrop-blur-xl rounded-full flex items-center justify-center
+                             border border-white/20 cursor-pointer shadow-[0_0_30px_rgba(255,255,255,0.1)]
+                             transition-shadow duration-300 hover:shadow-[0_0_40px_rgba(20,184,166,0.3)]">
+                  <Play fill="white" size={22} strokeWidth={0} className="ml-1" />
+                </motion.div>
               </div>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* ── Showcase Section ── */}
-      <section id="solutions" className="py-20 sm:py-24 px-4 sm:px-6 border-y border-white/5">
+      {/* ── Showcase ── */}
+      <section id="solutions" className="py-24 sm:py-32 px-4 sm:px-6 border-y border-white/[0.05]
+                                          bg-gradient-to-b from-transparent via-white/[0.01] to-transparent">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-teal-400 font-bold uppercase tracking-widest text-sm mb-4">
-              Communication In Action
-            </h2>
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold italic tracking-tight">
-              Built For High Performance
-            </h3>
-          </div>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
+            variants={stagger} className="text-center mb-14 sm:mb-20">
+            <SectionHeader eyebrow="Communication In Action" heading={<>Built For <em className="not-italic text-teal-400">High Performance</em></>} />
+          </motion.div>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5 sm:gap-7">
             {[
-              {
-                title: "Real-Time Messaging",
-                icon: MessageSquare,
-                img: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80",
-              },
-              {
-                title: "Crystal Clear Voice",
-                icon: Mic,
-                // reliable Unsplash image for microphone / voice
-                img: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?auto=format&fit=crop&w=600&q=80",
-              },
-              {
-                title: "HD Video Meetings",
-                icon: Video,
-                img: "https://images.unsplash.com/photo-1588196749597-9ff075ee6b5b?auto=format&fit=crop&w=600&q=80",
-              },
+              { title: "Real-Time Messaging", icon: MessageSquare, img: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80" },
+              { title: "Crystal Clear Voice",  icon: Mic,           img: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?auto=format&fit=crop&w=600&q=80" },
+              { title: "HD Video Meetings",    icon: Video,         img: "https://images.unsplash.com/photo-1588196749597-9ff075ee6b5b?auto=format&fit=crop&w=600&q=80" },
             ].map((item, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -8 }}
-                className="relative h-[380px] sm:h-[420px] md:h-[450px] rounded-3xl overflow-hidden border border-white/10 bg-white/5 group"
-              >
-                <img
-                  src={item.img}
-                  className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-110 transition-all duration-700"
-                  alt={item.title}
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#050816] via-[#050816]/30 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-6 sm:p-8 space-y-3 sm:space-y-4">
-                  <div className="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center text-[#050816]">
-                    <item.icon size={24} />
-                  </div>
-                  <h4 className="text-xl sm:text-2xl font-bold">{item.title}</h4>
-                  <p className="text-slate-400 text-sm">
+              <motion.div key={i}
+                initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -10, transition: { duration: 0.3 } }}
+                className="relative h-[400px] sm:h-[440px] md:h-[480px] rounded-[1.5rem] overflow-hidden
+                           border border-white/[0.08] bg-white/[0.03] group cursor-pointer">
+                <img src={item.img} loading="lazy" alt={item.title}
+                  className="absolute inset-0 w-full h-full object-cover opacity-35
+                             group-hover:opacity-55 group-hover:scale-110 transition-all duration-700" />
+                {/* Multi-layer gradient for depth */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#040b14] via-[#040b14]/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                {/* Top shimmer line */}
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+                <div className="absolute bottom-0 left-0 right-0 p-7 sm:p-8 space-y-3">
+                  <motion.div whileHover={{ scale: 1.1 }}
+                    className="w-12 h-12 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl
+                               flex items-center justify-center text-[#040b14]
+                               shadow-lg shadow-teal-500/30">
+                    <item.icon size={22} strokeWidth={2.5} />
+                  </motion.div>
+                  <h4 className="text-xl sm:text-2xl font-bold text-white">{item.title}</h4>
+                  <p className="text-slate-400 text-sm leading-relaxed">
                     Experience zero-latency connectivity optimized for global teams.
                   </p>
-                  <button className="flex items-center gap-2 text-teal-400 font-bold text-sm">
-                    Learn more <ChevronRight size={16} />
+                  <button className="flex items-center gap-1.5 text-teal-400 hover:text-teal-300 font-bold text-sm transition-colors group/btn">
+                    Learn more
+                    <ChevronRight size={15} className="group-hover/btn:translate-x-1 transition-transform duration-200" />
                   </button>
                 </div>
               </motion.div>
@@ -378,13 +405,16 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
       </section>
 
       {/* ── Features Grid ── */}
-      <section id="features" className="py-20 sm:py-24 px-4 sm:px-6 bg-white/[0.02]">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-teal-400 font-bold uppercase tracking-widest text-sm mb-4">What's Inside</h2>
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">Everything You Need</h3>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+      <section id="features" className="py-24 sm:py-32 px-4 sm:px-6 relative overflow-hidden">
+        {/* Subtle radial bg */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,rgba(20,184,166,0.04),transparent)] pointer-events-none" />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
+            variants={stagger} className="text-center mb-14 sm:mb-20">
+            <SectionHeader eyebrow="What's Inside" heading="Everything You Need" />
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {[
               { icon: MessageSquare, title: "Smart Messaging",    body: "Threaded replies, reactions, and advanced search functionality." },
               { icon: UsersRound,   title: "Group Spaces",        body: "Rich community tools with granular permission controls." },
@@ -393,152 +423,176 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
               { icon: Zap,          title: "Lightning Fast",      body: "Optimized signaling layer for sub-40ms message delivery." },
               { icon: Globe,        title: "Global Sync",         body: "Distributed nodes ensure clear calls from anywhere in the world." },
             ].map((feat, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ borderColor: "rgba(20,184,166,0.3)" }}
-                className="p-6 sm:p-8 rounded-3xl bg-white/5 border border-white/5 transition-colors"
-              >
-                <div className="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center text-teal-400 mb-5 sm:mb-6">
-                  <feat.icon size={24} />
+              <motion.div key={i}
+                initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-30px" }}
+                transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -6, transition: { duration: 0.25 } }}
+                className="p-7 sm:p-8 rounded-2xl relative overflow-hidden group cursor-default
+                           bg-white/[0.03] border border-white/[0.07]
+                           hover:border-teal-500/25 hover:bg-white/[0.05]
+                           transition-colors duration-300
+                           shadow-[0_1px_0_rgba(255,255,255,0.04)]">
+                {/* Hover glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-500/[0.06] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400 rounded-2xl" />
+                <div className="relative z-10">
+                  <div className="w-12 h-12 bg-teal-500/10 border border-teal-500/20 rounded-2xl
+                                  flex items-center justify-center text-teal-400 mb-6
+                                  group-hover:bg-teal-500/15 group-hover:border-teal-500/30
+                                  transition-all duration-300 shadow-[0_0_16px_rgba(20,184,166,0.1)]
+                                  group-hover:shadow-[0_0_24px_rgba(20,184,166,0.2)]">
+                    <feat.icon size={22} strokeWidth={1.8} />
+                  </div>
+                  <h4 className="text-lg font-bold mb-2.5 text-white group-hover:text-teal-50 transition-colors">{feat.title}</h4>
+                  <p className="text-slate-500 text-sm leading-relaxed group-hover:text-slate-400 transition-colors">{feat.body}</p>
                 </div>
-                <h4 className="text-lg sm:text-xl font-bold mb-3">{feat.title}</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">{feat.body}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── About Section ── */}
-      <section id="about" className="py-20 sm:py-24 px-4 sm:px-6 border-y border-white/5">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-teal-400 font-bold uppercase tracking-widest text-sm mb-4">
-            About .connect
-          </h2>
-          <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-6">
-            Built for the way people actually communicate
-          </h3>
+      {/* ── About ── */}
+      <section id="about" className="py-24 sm:py-32 px-4 sm:px-6 border-y border-white/[0.05]">
+        <div className="max-w-4xl mx-auto text-center">
+          <RevealSection>
+            <p className="inline-flex items-center gap-2 text-teal-400 font-bold uppercase tracking-[0.2em] text-[11px] mb-5">
+              <span className="w-6 h-px bg-teal-400/60" />About .connect<span className="w-6 h-px bg-teal-400/60" />
+            </p>
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-6 text-white">
+              Built for the way people<br className="hidden sm:block" /> actually communicate
+            </h3>
+            <p className="text-slate-400 text-base sm:text-lg leading-[1.8] max-w-2xl mx-auto mb-5">
+              .connect is a real-time communication platform designed to bring people closer — whether
+              you're a small team, a community of creators, or friends across time zones.
+            </p>
+          </RevealSection>
 
-          {/* Always-visible intro line */}
-          <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto mb-4">
-            .connect is a real-time communication platform designed to bring people closer — whether
-            you're a small team, a community of creators, or friends across time zones.
-          </p>
-
-          {/* Expandable content */}
-          <div
-            className={`overflow-hidden transition-all duration-500 ease-in-out ${
-              aboutExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
-            }`}
-          >
-            <div className="space-y-4 pb-6">
-              <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto">
+          {/* Expandable */}
+          <div className={`overflow-hidden transition-all duration-600 ease-in-out ${aboutExpanded ? "max-h-[700px] opacity-100" : "max-h-0 opacity-0"}`}>
+            <div className="space-y-4 pb-7 text-left sm:text-center">
+              <p className="text-slate-400 text-base sm:text-lg leading-[1.8] max-w-2xl mx-auto">
                 We built it because most chat tools are either too bloated or too bare-bones.
                 .connect sits in the middle: fast, focused, and genuinely enjoyable to use.
               </p>
-              <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto">
+              <p className="text-slate-400 text-base sm:text-lg leading-[1.8] max-w-2xl mx-auto">
                 At its core, .connect is about removing friction from conversation. Direct messages,
                 group channels, voice and video calls, status stories, and file sharing — all in one
-                place, with no switching between apps. Every feature is built around the idea that
-                communication should feel effortless, not like work.
+                place. Every feature is built around the idea that communication should feel effortless.
               </p>
             </div>
-
-            <div className="grid sm:grid-cols-3 gap-6 pb-8">
+            <div className="grid sm:grid-cols-3 gap-4 sm:gap-5 pb-8">
               {[
-                { heading: "Real-time first",    text: "WebSocket-powered messaging means your words arrive the moment you send them." },
-                { heading: "Privacy by design",  text: "Your conversations stay yours. End-to-end encryption on all private messages." },
-                { heading: "Open to everyone",   text: "No paywalls on core features. Great communication shouldn't be a premium add-on." },
+                { heading: "Real-time first",   text: "WebSocket-powered messaging means your words arrive the moment you send them." },
+                { heading: "Privacy by design", text: "Your conversations stay yours. End-to-end encryption on all private messages." },
+                { heading: "Open to everyone",  text: "No paywalls on core features. Great communication shouldn't be a premium add-on." },
               ].map((item, i) => (
-                <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/5 text-left space-y-2">
-                  <h4 className="font-bold text-white">{item.heading}</h4>
-                  <p className="text-slate-400 text-sm leading-relaxed">{item.text}</p>
-                </div>
+                <motion.div key={i}
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1, duration: 0.5 }}
+                  className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] text-left space-y-2
+                             hover:border-teal-500/20 hover:bg-white/[0.05] transition-all duration-300">
+                  <h4 className="font-bold text-white text-sm">{item.heading}</h4>
+                  <p className="text-slate-500 text-sm leading-relaxed">{item.text}</p>
+                </motion.div>
               ))}
             </div>
           </div>
 
-          {/* Read more / less toggle */}
-          <button
-            onClick={() => setAboutExpanded((v) => !v)}
-            className="inline-flex items-center gap-2 text-teal-400 font-bold text-sm hover:text-teal-300 transition-colors mt-2"
-          >
+          <button onClick={() => setAboutExpanded(v => !v)}
+            className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 font-bold text-sm transition-colors duration-200 mt-1 group">
             {aboutExpanded ? "Show less" : "Read more"}
-            <motion.span
-              animate={{ rotate: aboutExpanded ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
-              className="inline-flex"
-            >
-              <ChevronDown size={16} />
+            <motion.span animate={{ rotate: aboutExpanded ? 180 : 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="inline-flex">
+              <ChevronDown size={15} strokeWidth={2.5} />
             </motion.span>
           </button>
         </div>
       </section>
 
       {/* ── Statistics ── */}
-      <section className="py-16 sm:py-20 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12">
-          <StatCounter value="50,000+" label="Daily Messages" />
-          <StatCounter value="10,000+" label="Active Users" />
-          <StatCounter value="99.9%"   label="Uptime" />
-          <StatCounter value="100+"    label="Communities" />
-        </div>
-      </section>
-
-      {/* ── Final CTA ── */}
-      <section className="py-28 sm:py-40 px-4 sm:px-6 relative overflow-hidden text-center">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-teal-500/10 blur-[150px] rounded-full pointer-events-none" />
-        <div className="max-w-4xl mx-auto relative z-10 space-y-8 sm:space-y-10">
-          <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight">
-            Communication <br className="hidden sm:block" />
-            <span className="text-teal-400 italic font-light">Without Limits.</span>
-          </h2>
-          <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto">
-            Everything you need to message, call, collaborate, and stay connected in one premium workspace.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={onSignup}
-              className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-teal-500 text-[#050816] font-bold rounded-2xl hover:scale-105 transition-transform active:scale-95 shadow-2xl shadow-teal-500/20"
-            >
-              Start Free Now
-            </button>
-            <button className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white/5 border border-white/10 font-bold rounded-2xl hover:bg-white/10 transition-colors">
-              Book a Demo
-            </button>
+      <section className="py-20 sm:py-28 px-4 sm:px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_50%,rgba(20,184,166,0.05),transparent)] pointer-events-none" />
+        <div className="max-w-5xl mx-auto relative z-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12
+                          p-8 sm:p-12 rounded-3xl
+                          bg-white/[0.02] border border-white/[0.06]
+                          shadow-[0_0_80px_rgba(20,184,166,0.04),inset_0_1px_0_rgba(255,255,255,0.05)]
+                          backdrop-blur-sm">
+            <StatCounter value="50,000+" label="Daily Messages" />
+            <StatCounter value="10,000+" label="Active Users" />
+            <StatCounter value="99.9%"   label="Uptime" />
+            <StatCounter value="100+"    label="Communities" />
           </div>
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="py-16 sm:py-20 px-4 sm:px-6 border-t border-white/5 bg-[#030612]">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-12 mb-12 sm:mb-20 text-sm">
-          <div className="col-span-2 space-y-4 sm:space-y-6">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-teal-500 rounded flex items-center justify-center font-black text-[#050816] leading-none">.</div>
-              <span className="text-lg font-bold"><span className="text-teal-400">.</span>connect</span>
+      {/* ── Final CTA ── */}
+      <section className="py-32 sm:py-44 px-4 sm:px-6 relative overflow-hidden text-center">
+        {/* Multi-layer glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-teal-500/[0.08] blur-[160px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] bg-emerald-400/[0.06] blur-[80px] rounded-full pointer-events-none" />
+
+        <RevealSection className="max-w-4xl mx-auto relative z-10">
+          <div className="space-y-8 sm:space-y-10">
+            <h2 className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black tracking-[-0.03em] leading-[1.05]">
+              Communication{" "}
+              <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-emerald-300 to-teal-400
+                               italic font-light drop-shadow-[0_0_60px_rgba(20,184,166,0.4)]">
+                Without Limits.
+              </span>
+            </h2>
+            <p className="text-slate-400 text-lg sm:text-xl max-w-xl mx-auto leading-relaxed">
+              Everything you need to message, call, collaborate, and stay connected in one premium workspace.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <motion.button onClick={onSignup} whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.97 }}
+                className="w-full sm:w-auto px-10 py-4 sm:py-5 bg-gradient-to-r from-teal-500 to-emerald-500
+                           hover:from-teal-400 hover:to-emerald-400 text-[#040b14] font-bold rounded-2xl
+                           shadow-[0_0_40px_rgba(20,184,166,0.3)] hover:shadow-[0_0_60px_rgba(20,184,166,0.45)]
+                           transition-all duration-300 text-base">
+                Start Free Now
+              </motion.button>
+              <motion.button whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
+                className="w-full sm:w-auto px-10 py-4 sm:py-5 bg-white/[0.04] hover:bg-white/[0.08]
+                           border border-white/[0.1] hover:border-white/[0.2] font-bold rounded-2xl
+                           backdrop-blur-sm transition-all duration-300 text-base">
+                Book a Demo
+              </motion.button>
             </div>
-            <p className="text-slate-500 max-w-xs leading-relaxed">
+          </div>
+        </RevealSection>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="py-16 sm:py-20 px-4 sm:px-6 border-t border-white/[0.05] bg-[#020810]">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-12 mb-12 sm:mb-16 text-sm">
+          <div className="col-span-2 space-y-5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-lg flex items-center justify-center font-black text-[#040b14] leading-none shadow-md shadow-teal-500/20">.</div>
+              <span className="text-base font-bold"><span className="text-teal-400">.</span>connect</span>
+            </div>
+            <p className="text-slate-600 max-w-[240px] leading-relaxed text-[13px]">
               Redefining communication for modern teams. Built with speed, privacy, and design at the core.
             </p>
           </div>
           {["Product", "Company", "Legal"].map((cat) => (
             <div key={cat} className="space-y-4">
-              <h5 className="font-bold text-xs uppercase tracking-widest text-slate-400">{cat}</h5>
-              <ul className="space-y-2 text-slate-500">
-                <li className="hover:text-teal-400 cursor-pointer transition-colors">Overview</li>
-                <li className="hover:text-teal-400 cursor-pointer transition-colors">Security</li>
-                <li className="hover:text-teal-400 cursor-pointer transition-colors">Contact</li>
+              <h5 className="font-bold text-[11px] uppercase tracking-[0.18em] text-slate-500">{cat}</h5>
+              <ul className="space-y-2.5 text-slate-600 text-[13px]">
+                {["Overview", "Security", "Contact"].map(item => (
+                  <li key={item} className="hover:text-teal-400 cursor-pointer transition-colors duration-200">{item}</li>
+                ))}
               </ul>
             </div>
           ))}
         </div>
-        <div className="max-w-7xl mx-auto pt-8 sm:pt-10 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6 text-xs text-slate-600">
+        <div className="max-w-7xl mx-auto pt-8 border-t border-white/[0.04] flex flex-col sm:flex-row justify-between items-center gap-4 text-[12px] text-slate-700">
           <p>© {currentYear} .connect Inc. All rights reserved.</p>
           <div className="flex gap-6 sm:gap-8">
-            <span className="hover:text-white cursor-pointer transition-colors">Twitter / X</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Discord</span>
-            <span className="hover:text-white cursor-pointer transition-colors">LinkedIn</span>
+            {["Twitter / X", "Discord", "LinkedIn"].map(s => (
+              <span key={s} className="hover:text-slate-400 cursor-pointer transition-colors duration-200">{s}</span>
+            ))}
           </div>
         </div>
       </footer>
