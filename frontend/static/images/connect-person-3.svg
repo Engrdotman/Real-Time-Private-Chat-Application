@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" role="img" aria-label="Person in .connect voice room">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#13241f"/>
+      <stop offset="1" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#d9ffeb"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="240" rx="28" fill="url(#bg)"/>
+  <circle cx="67" cy="48" r="46" fill="#86efac" opacity=".2"/>
+  <path d="M51 220c15-52 58-78 111-78s94 26 108 78" fill="url(#shirt)"/>
+  <circle cx="161" cy="98" r="54" fill="#7b4a32"/>
+  <path d="M111 88c6-41 36-63 73-57 29 5 48 27 48 59-22-4-44-13-66-34-16 19-33 29-55 32z" fill="#111816"/>
+  <circle cx="140" cy="103" r="5" fill="#111816"/>
+  <circle cx="181" cy="103" r="5" fill="#111816"/>
+  <path d="M145 124c10 9 25 9 35 0" fill="none" stroke="#2c1b14" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="258" cy="184" r="28" fill="#07130f" opacity=".74"/>
+  <path d="M258 170v24" stroke="#ecfff6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M246 186c3 10 21 10 24 0" fill="none" stroke="#22c55e" stroke-width="7" stroke-linecap="round"/>
+</svg>

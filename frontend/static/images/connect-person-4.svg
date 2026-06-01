@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" role="img" aria-label="Person presenting on .connect">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#07130f"/>
+      <stop offset="1" stop-color="#0f9f8f"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#86efac"/>
+      <stop offset="1" stop-color="#ecfff6"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="240" rx="28" fill="url(#bg)"/>
+  <rect x="35" y="31" width="250" height="56" rx="20" fill="#ecfff6" opacity=".1"/>
+  <path d="M54 218c13-50 56-76 107-76s91 26 105 76" fill="url(#shirt)"/>
+  <circle cx="160" cy="96" r="53" fill="#a96d4d"/>
+  <path d="M108 88c5-44 39-67 78-61 29 4 48 25 48 58-43 5-73-7-92-31-10 15-21 27-34 34z" fill="#221713"/>
+  <circle cx="139" cy="101" r="5" fill="#171b18"/>
+  <circle cx="181" cy="101" r="5" fill="#171b18"/>
+  <path d="M144 124c12 11 27 11 39 0" fill="none" stroke="#3d2118" stroke-width="6" stroke-linecap="round"/>
+  <path d="M54 59h45m19 0h73" stroke="#86efac" stroke-width="8" stroke-linecap="round" opacity=".85"/>
+  <circle cx="249" cy="59" r="12" fill="#22c55e"/>
+</svg>

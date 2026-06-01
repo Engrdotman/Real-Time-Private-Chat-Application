@@ -1,8 +1,10 @@
-from django.urls import path
+from django.urls import path, re_path
 from . import views
 
 urlpatterns = [
-    path('', views.react_app, name='react_app'),
+    # Catch-all route for React: Matches everything except paths starting with api/ or legacy/
+    re_path(r'^(?!api/|legacy/|media/|static/|signup/|login/|logout/|admin/).*$', views.react_app, name='react_app'),
+    
     path('legacy/', views.chat_view, name='chat'),
     path('legacy/chat/<int:user_id>/', views.chat_view, name='private_chat'),
     path('api/messages/<int:user_id>/', views.get_messages, name='get_messages'),

@@ -11,18 +11,22 @@ from django.db.models import Q
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from .forms import SignUpForm, LoginForm
-from .models import Message, UserProfile
+from .models import Message, UserProfile, Group, GroupMessage, StatusStory, StoryComment
+from datetime import timedelta
+from django.utils import timezone
 
-
+@never_cache
 def react_app(request):
+    # Your vite.config.js sets outDir to 'static/react'
     index_path = Path(settings.BASE_DIR).parent / 'frontend' / 'static' / 'react' / 'index.html'
     if index_path.exists():
-        return HttpResponse(index_path.read_text(encoding='utf-8'))
+        with open(index_path, 'r', encoding='utf-8') as f:
+            return HttpResponse(f.read(), content_type='text/html')
     return JsonResponse({
-        'error': 'React build not found. Run "npm run build" inside the frontend folder.'
+        'error': f'React build not found at {index_path}. Run "npm run build" inside the frontend folder.'
     }, status=503)
-
 
 def _profile_payload(user):
     profile, _ = UserProfile.objects.get_or_create(user=user)

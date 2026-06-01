@@ -1,4 +1,6 @@
+import "../static/css/style.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   LogOut,
   Plus,
@@ -17,14 +19,21 @@ import {
   MessageCircle,
   Check,
   CheckCheck,
+  Bell,
   Clock3,
+  Mic,
   Moon,
   Sun,
   PanelRight,
   FileUp,
   ShieldCheck,
 } from "lucide-react";
+import LandingPage from "./components/LandingPage";
+import OnboardingFlow from "./components/OnboardingFlow";
+import { pageTransition } from "./motionPresets";
 import logoUrl from "../static/images/chatapp-logo.png";
+import callPersonOne from "../static/images/connect-person-1.svg";
+import callPersonTwo from "../static/images/connect-person-2.svg";
 
 const authFetch = (url, options = {}) =>
   fetch(url, {
@@ -65,7 +74,7 @@ function Avatar({ name, src, square = false, online = false, size = 40 }) {
   );
 }
 
-function AuthScreen({ mode, setMode, onAuthed }) {
+function AuthScreen({ mode, setMode, onAuthed, onBack }) {
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -93,7 +102,7 @@ function AuthScreen({ mode, setMode, onAuthed }) {
         const detail = data.error || Object.values(data.errors || {}).flat().join(" ");
         throw new Error(detail || "Something went wrong.");
       }
-      onAuthed(data.user);
+      onAuthed(data.user, isSignup);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -102,8 +111,8 @@ function AuthScreen({ mode, setMode, onAuthed }) {
   }
 
   return (
-    <main className="auth-shell">
-      <section className="auth-card">
+    <motion.main className="auth-shell" {...pageTransition}>
+      <motion.section className="auth-card" layout>
         <div className="auth-brand">
           <img src={logoUrl} alt=".connect" />
           <div>
@@ -172,11 +181,16 @@ function AuthScreen({ mode, setMode, onAuthed }) {
           </button>
         </form>
 
-        <button className="switch-auth" onClick={() => setMode(isSignup ? "login" : "signup")}>
-          {isSignup ? "Already have an account? Log in" : "Need an account? Sign up"}
-        </button>
-      </section>
-    </main>
+        <div className="auth-secondary-actions">
+          <button className="switch-auth" onClick={() => setMode(isSignup ? "login" : "signup")}>
+            {isSignup ? "Already have an account? Log in" : "Need an account? Sign up"}
+          </button>
+          <button className="switch-auth subtle" onClick={onBack}>
+            Back to .connect
+          </button>
+        </div>
+      </motion.section>
+    </motion.main>
   );
 }
 
@@ -265,10 +279,12 @@ function Sidebar({
       <div className="section-label">Direct Messages</div>
       <div className="conversation-list">
         {filteredUsers.map((user) => (
-          <button
+          <motion.button
             className={`conversation ${selected?.type === "private" && selected.id === user.id ? "active" : ""}`}
             key={user.id}
             onClick={() => onSelect({ type: "private", ...user })}
+            whileHover={{ x: 3 }}
+            whileTap={{ scale: 0.98 }}
           >
             <Avatar name={user.username} src={user.profile_pic} online={user.is_online} />
             <span>
@@ -278,7 +294,7 @@ function Sidebar({
             </span>
             <b>{formatTime(user.last_message_time)}</b>
             {user.unread_count > 0 && <mark>{user.unread_count}</mark>}
-          </button>
+          </motion.button>
         ))}
       </div>
 
@@ -290,17 +306,19 @@ function Sidebar({
       </div>
       <div className="conversation-list">
         {groups.map((group) => (
-          <button
+          <motion.button
             className={`conversation ${selected?.type === "group" && selected.id === group.id ? "active" : ""}`}
             key={group.id}
             onClick={() => onSelect({ type: "group", ...group })}
+            whileHover={{ x: 3 }}
+            whileTap={{ scale: 0.98 }}
           >
             <Avatar name={group.name} src={group.avatar} square />
             <span>
               <strong>{group.name}</strong>
               <small>{group.description || "No description"}</small>
             </span>
-          </button>
+          </motion.button>
         ))}
         {groups.length === 0 && <p className="empty-list">Create a group to start collaborating.</p>}
       </div>
@@ -342,8 +360,53 @@ function TypingIndicator({ name }) {
   );
 }
 
-function ChatPanel({ currentUser, selected, messages, onSend, onUpload, onBack, connected, onOpenDetails, onTyping, typingUser }) {
+function LoadingScreen() {
+  return (
+    <div className="loading-screen skeleton-screen">
+      <div className="skeleton-logo" />
+      <div className="skeleton-card">
+        <span />
+        <span />
+        <span />
+      </div>
+    </div>
+  );
+}
+
+function FloatingNotification({ message }) {
+  return (
+    <AnimatePresence>
+      {message && (
+        <motion.div
+          className="floating-notification"
+          initial={{ opacity: 0, y: -18, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.96 }}
+        >
+          <Bell size={17} />
+          <span>{message}</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function ChatPanel({
+  currentUser,
+  selected,
+  messages,
+  onSend,
+  onUpload,
+  onBack,
+  connected,
+  onOpenDetails,
+  onTyping,
+  typingUser,
+  onStartCall,
+}) {
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState(null);
+  const [reactions, setReactions] = useState({});
   const fileRef = useRef(null);
   const messagesRef = useRef(null);
 
@@ -354,9 +417,19 @@ function ChatPanel({ currentUser, selected, messages, onSend, onUpload, onBack, 
   function submit(event) {
     event.preventDefault();
     if (!selected || !text.trim()) return;
-    onSend(text.trim());
+    const payload = replyTo ? `Reply to ${replyTo.sender_username}: ${replyTo.content || replyTo.message}\n${text.trim()}` : text.trim();
+    onSend(payload);
     setText("");
+    setReplyTo(null);
     onTyping(false);
+  }
+
+  function reactTo(message, emoji) {
+    const key = message.id || `${message.sender_id}-${message.timestamp}`;
+    setReactions((current) => ({
+      ...current,
+      [key]: current[key] === emoji ? "" : emoji,
+    }));
   }
 
   if (!selected) {
@@ -364,7 +437,9 @@ function ChatPanel({ currentUser, selected, messages, onSend, onUpload, onBack, 
       <section className="chat-panel">
         <div className="empty-chat">
           <MessageCircle size={52} />
-          <h3>Welcome to .connect</h3>
+          <h3>
+            Welcome to <span className="connect-wordmark inline-wordmark">.connect</span>
+          </h3>
           <p>Select a conversation from the sidebar to start chatting.</p>
         </div>
       </section>
@@ -385,10 +460,10 @@ function ChatPanel({ currentUser, selected, messages, onSend, onUpload, onBack, 
           </span>
         </div>
         <nav>
-          <button className="icon-btn" title="Call">
+          <button className="icon-btn" title="Call" onClick={() => onStartCall("voice")}>
             <Phone size={18} />
           </button>
-          <button className="icon-btn" title="Video">
+          <button className="icon-btn" title="Video" onClick={() => onStartCall("video")}>
             <Video size={18} />
           </button>
           <button className="icon-btn" onClick={onOpenDetails} title="Details">
@@ -401,24 +476,60 @@ function ChatPanel({ currentUser, selected, messages, onSend, onUpload, onBack, 
         {messages.length === 0 && <p className="day-note">No messages yet. Say hello.</p>}
         {messages.map((message) => {
           const isSent = message.sender_id === currentUser.id;
+          const reactionKey = message.id || `${message.sender_id}-${message.timestamp}`;
           return (
-            <div className={`message ${isSent ? "sent" : "received"}`} key={`${message.id}-${message.timestamp}`}>
+            <motion.div
+              className={`message ${isSent ? "sent" : "received"}`}
+              key={`${message.id}-${message.timestamp}`}
+              layout
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.22 }}
+            >
               <div className="bubble">
                 {selected.type === "group" && !isSent && <strong>{message.sender_username}</strong>}
                 {message.file_url && <Attachment url={message.file_url} />}
                 {message.content || message.message ? <span>{message.content || message.message}</span> : null}
+                <div className="message-actions">
+                  <button type="button" onClick={() => setReplyTo(message)}>
+                    Reply
+                  </button>
+                  {["👍", "❤️", "✨"].map((emoji) => (
+                    <button type="button" key={emoji} onClick={() => reactTo(message, emoji)}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+                {reactions[reactionKey] && <b className="reaction-pill">{reactions[reactionKey]}</b>}
                 <small>
                   {formatTime(message.timestamp)}
                   {isSent && <MessageStatus message={message} />}
                 </small>
               </div>
-            </div>
+            </motion.div>
           );
         })}
         <TypingIndicator name={typingUser} />
       </div>
 
       <form className="composer" onSubmit={submit}>
+        <AnimatePresence>
+          {replyTo && (
+            <motion.div
+              className="reply-preview"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+            >
+              <span>
+                Replying to <strong>{replyTo.sender_username}</strong>
+              </span>
+              <button type="button" onClick={() => setReplyTo(null)}>
+                <X size={14} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <button type="button" className="icon-btn upload-btn" onClick={() => fileRef.current?.click()} title="Attach file">
           <Paperclip size={19} />
         </button>
@@ -477,15 +588,68 @@ function ProfileDrawer({ selected, currentUser, messageCount, onClose }) {
         </div>
         <div>
           <ShieldCheck size={18} />
-          <strong>Private</strong>
-          <span>Session auth</span>
+          <strong>{isGroup ? "Admin-ready" : "Private"}</strong>
+          <span>{isGroup ? "Roles and member controls" : "Session auth"}</span>
         </div>
       </div>
+      {isGroup && (
+        <div className="group-admin-card">
+          <span>Group architecture</span>
+          <ul>
+            <li>Creator becomes admin</li>
+            <li>Members join the same group websocket</li>
+            <li>Replies and reactions have UI hooks</li>
+            <li>Redis fanout can replace the in-memory layer</li>
+          </ul>
+        </div>
+      )}
       <div className="detail-card muted-card">
         <span>Your account</span>
         <strong>{currentUser.username}</strong>
       </div>
     </aside>
+  );
+}
+
+function CallPreviewModal({ mode, selected, onClose }) {
+  if (!mode || !selected) return null;
+  const isVideo = mode === "video";
+  const selectedImage = selected.profile_pic || selected.avatar || callPersonOne;
+  return (
+    <Modal title={isVideo ? "Video call preview" : "Voice call preview"} onClose={onClose}>
+      <div className="call-architecture">
+        <div className={isVideo ? "call-video-grid" : "call-voice-stage"}>
+          <figure>
+            <img src={selectedImage} alt={`${selected.username || selected.name} on .connect call`} />
+            <figcaption>{selected.username || selected.name}</figcaption>
+          </figure>
+          {isVideo && (
+            <figure>
+              <img src={callPersonTwo} alt="You on .connect video call" />
+              <figcaption>You</figcaption>
+            </figure>
+          )}
+        </div>
+        <div className="call-stack">
+          <strong>{selected.username || selected.name}</strong>
+          <p>Prepared for WebRTC signaling, room presence, invite notifications, and Redis-backed call events.</p>
+        </div>
+        <div className="call-action-row">
+          <button type="button">
+            <Mic size={16} />
+            Mute
+          </button>
+          <button type="button">
+            <Video size={16} />
+            Camera
+          </button>
+          <button type="button" className="danger-call" onClick={onClose}>
+            <Phone size={16} />
+            End
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -692,8 +856,19 @@ function StoryViewer({ storySet, index, onClose, onChanged }) {
 
 function Modal({ title, children, onClose }) {
   return (
-    <div className="modal-backdrop">
-      <section className="modal-card">
+    <motion.div
+      className="modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.section
+        className="modal-card"
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.97 }}
+        transition={{ duration: 0.22 }}
+      >
         <header>
           <h3>{title}</h3>
           <button className="icon-btn" onClick={onClose}>
@@ -701,15 +876,17 @@ function Modal({ title, children, onClose }) {
           </button>
         </header>
         {children}
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 
 export default function App() {
+  const [publicView, setPublicView] = useState("landing");
   const [authMode, setAuthMode] = useState("login");
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [stories, setStories] = useState([]);
@@ -719,6 +896,8 @@ export default function App() {
   const [typingUser, setTypingUser] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [notification, setNotification] = useState("");
+  const [callMode, setCallMode] = useState(null);
   const [modal, setModal] = useState(null);
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -799,6 +978,10 @@ export default function App() {
       if (data.action === "chat_message" || data.action === "group_chat_message") {
         const normalized = { ...data, content: data.message };
         setMessages((items) => (items.some((item) => item.id === data.id) ? items : [...items, normalized]));
+        if (data.sender_id !== currentUser.id) {
+          setNotification(`New message from ${data.sender_username}`);
+          window.setTimeout(() => setNotification(""), 2600);
+        }
       }
     };
 
@@ -831,10 +1014,54 @@ export default function App() {
     await authFetch("/logout/");
     setCurrentUser(null);
     setSelected(null);
+    setPublicView("landing");
   }
 
-  if (loading) return <div className="loading-screen">Loading .connect...</div>;
-  if (!currentUser) return <AuthScreen mode={authMode} setMode={setAuthMode} onAuthed={() => loadSession()} />;
+  if (loading) return <LoadingScreen />;
+  if (!currentUser) {
+    return (
+      <AnimatePresence mode="wait">
+        {publicView === "landing" ? (
+          <LandingPage
+            key="landing"
+            logoUrl={logoUrl}
+            onLogin={() => {
+              setAuthMode("login");
+              setPublicView("auth");
+            }}
+            onSignup={() => {
+              setAuthMode("signup");
+              setPublicView("auth");
+            }}
+          />
+        ) : (
+          <AuthScreen
+            key="auth"
+            mode={authMode}
+            setMode={setAuthMode}
+            onBack={() => setPublicView("landing")}
+            onAuthed={async (_user, fromSignup) => {
+              await loadSession();
+              setNeedsOnboarding(Boolean(fromSignup));
+            }}
+          />
+        )}
+      </AnimatePresence>
+    );
+  }
+
+  if (needsOnboarding) {
+    return (
+      <OnboardingFlow
+        user={currentUser}
+        onFinish={() => setNeedsOnboarding(false)}
+        onCreateGroup={() => {
+          setNeedsOnboarding(false);
+          setModal("group");
+        }}
+      />
+    );
+  }
 
   return (
     <main className={`app-shell ${darkMode ? "dark-mode" : ""} ${detailsOpen && selected ? "details-open" : ""}`}>
@@ -865,48 +1092,55 @@ export default function App() {
           onOpenDetails={() => setDetailsOpen((value) => !value)}
           onTyping={sendTyping}
           typingUser={typingUser}
+          onStartCall={setCallMode}
         />
         <ProfileDrawer selected={selected} currentUser={currentUser} messageCount={messages.length} onClose={() => setDetailsOpen(false)} />
       </div>
 
-      {modal === "settings" && (
-        <SettingsModal
-          currentUser={currentUser}
-          onClose={() => setModal(null)}
-          onSaved={(user) => {
-            setCurrentUser(user);
-            setModal(null);
-            loadSession();
-          }}
-        />
-      )}
-      {modal === "group" && (
-        <CreateGroupModal
-          users={users}
-          onClose={() => setModal(null)}
-          onCreated={(group) => {
-            setGroups((items) => [...items, group]);
-            setModal(null);
-          }}
-        />
-      )}
-      {modal === "story" && (
-        <StoryUploadModal
-          onClose={() => setModal(null)}
-          onCreated={() => {
-            setModal(null);
-            loadStories();
-          }}
-        />
-      )}
-      {modal?.type === "viewer" && (
-        <StoryViewer
-          storySet={modal.storySet}
-          index={modal.index}
-          onClose={() => setModal(null)}
-          onChanged={loadStories}
-        />
-      )}
+      <AnimatePresence>
+        {modal === "settings" && (
+          <SettingsModal
+            currentUser={currentUser}
+            onClose={() => setModal(null)}
+            onSaved={(user) => {
+              setCurrentUser(user);
+              setModal(null);
+              loadSession();
+            }}
+          />
+        )}
+        {modal === "group" && (
+          <CreateGroupModal
+            users={users}
+            onClose={() => setModal(null)}
+            onCreated={(group) => {
+              setGroups((items) => [...items, group]);
+              setModal(null);
+              setNotification(`${group.name} is ready for group chat`);
+              window.setTimeout(() => setNotification(""), 2600);
+            }}
+          />
+        )}
+        {modal === "story" && (
+          <StoryUploadModal
+            onClose={() => setModal(null)}
+            onCreated={() => {
+              setModal(null);
+              loadStories();
+            }}
+          />
+        )}
+        {modal?.type === "viewer" && (
+          <StoryViewer
+            storySet={modal.storySet}
+            index={modal.index}
+            onClose={() => setModal(null)}
+            onChanged={loadStories}
+          />
+        )}
+        {callMode && <CallPreviewModal mode={callMode} selected={selected} onClose={() => setCallMode(null)} />}
+      </AnimatePresence>
+      <FloatingNotification message={notification} />
     </main>
   );
 }
