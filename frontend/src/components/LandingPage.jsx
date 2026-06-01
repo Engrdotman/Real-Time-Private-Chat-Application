@@ -1,24 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useInView } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import {
   ArrowRight,
   Mic,
-  Sparkles,
+  MessageSquare,
   UsersRound,
   Video,
   Zap,
-  MessageSquare,
   Lock,
   Activity,
   Play,
   ChevronRight,
   Globe,
+  ChevronDown,
 } from "lucide-react";
 
 // --- Design System Constants ---
-const COLORS = {
-  primary: "#14B8A6",
-};
+const COLORS = { primary: "#14B8A6" };
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -27,10 +25,7 @@ const fadeUp = {
 
 const staggerContainer = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
 };
 
 // --- Sub-Components ---
@@ -83,7 +78,6 @@ function NetworkBackground() {
       duration: 3 + Math.random() * 2,
     }))
   );
-
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
       <svg className="w-full h-full" viewBox="0 0 800 800">
@@ -112,16 +106,11 @@ function StatCounter({ value, label }) {
     if (isInView) {
       const target = parseInt(value.replace(/,/g, ""));
       let start = 0;
-      const duration = 2000;
-      const increment = target / (duration / 16);
+      const increment = target / (2000 / 16);
       const timer = setInterval(() => {
         start += increment;
-        if (start >= target) {
-          setDisplayValue(target);
-          clearInterval(timer);
-        } else {
-          setDisplayValue(Math.floor(start));
-        }
+        if (start >= target) { setDisplayValue(target); clearInterval(timer); }
+        else setDisplayValue(Math.floor(start));
       }, 16);
       return () => clearInterval(timer);
     }
@@ -142,6 +131,7 @@ function StatCounter({ value, label }) {
 
 export default function LandingPage({ logoUrl, onLogin, onSignup }) {
   const [scrolled, setScrolled] = useState(false);
+  const [aboutExpanded, setAboutExpanded] = useState(false);
   const currentYear = new Date().getFullYear();
 
   useEffect(() => {
@@ -153,42 +143,34 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
   return (
     <div className="landing-page min-h-screen bg-[#050816] text-white selection:bg-teal-500/30 font-sans">
 
-      {/* Floating Navbar */}
-      <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 ${
-          scrolled
-            ? "py-3 bg-[#050816]/80 backdrop-blur-lg border-b border-white/5"
-            : "py-4 bg-transparent"
-        }`}
-      >
+      {/* ── Navbar ── */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 ${
+        scrolled ? "py-3 bg-[#050816]/80 backdrop-blur-lg border-b border-white/5" : "py-4 bg-transparent"
+      }`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo */}
+
+          {/* Logo — ".connect" with the dot styled */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center font-black text-[#050816] text-xl">
+            <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center font-black text-[#050816] text-xl leading-none">
               .
             </div>
-            <span className="text-xl font-bold tracking-tight">connect</span>
+            <span className="text-xl font-bold tracking-tight">
+              <span className="text-teal-400">.</span>connect
+            </span>
           </div>
 
-          {/* Nav links — hidden on mobile */}
+          {/* Nav links */}
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             {["Features", "Solutions", "About"].map((link) => (
-              <a
-                key={link}
-                href={`#${link.toLowerCase()}`}
-                className="hover:text-teal-400 transition-colors"
-              >
+              <a key={link} href={`#${link.toLowerCase()}`} className="hover:text-teal-400 transition-colors">
                 {link}
               </a>
             ))}
           </div>
 
-          {/* Auth buttons */}
+          {/* Auth */}
           <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={onLogin}
-              className="text-sm font-semibold hover:text-teal-400 transition-colors"
-            >
+            <button onClick={onLogin} className="text-sm font-semibold hover:text-teal-400 transition-colors">
               Sign In
             </button>
             <button
@@ -205,6 +187,16 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
       <section className="relative min-h-screen flex items-center pt-20 pb-16 px-4 sm:px-6 overflow-hidden">
         <NetworkBackground />
 
+        {/* Mobile background image — blurred behind text */}
+        <div className="absolute inset-0 lg:hidden">
+          <img
+            src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1200&q=80"
+            alt=""
+            className="w-full h-full object-cover opacity-20 blur-sm scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#050816]/60 via-[#050816]/70 to-[#050816]" />
+        </div>
+
         {/* Ambient glows */}
         <div className="absolute top-1/4 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-teal-500/10 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
@@ -218,11 +210,12 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
             variants={staggerContainer}
             className="flex flex-col gap-6 text-center lg:text-left items-center lg:items-start"
           >
+            {/* Badge — chat icon instead of sparkles */}
             <motion.div
               variants={fadeUp}
               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-teal-400 text-xs font-bold uppercase tracking-wider"
             >
-              <Sparkles size={14} /> The next generation of chat
+              <MessageSquare size={14} /> The next generation of chat
             </motion.div>
 
             <motion.h1
@@ -235,27 +228,14 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
               </span>
             </motion.h1>
 
-            <motion.div
-              variants={fadeUp}
-              className="text-lg sm:text-xl md:text-2xl font-medium text-slate-300"
-            >
+            <motion.div variants={fadeUp} className="text-lg sm:text-xl md:text-2xl font-medium text-slate-300">
               Building{" "}
-              <Typewriter
-                texts={[
-                  "meaningful conversations.",
-                  "stronger communities.",
-                  "seamless collaboration.",
-                  ".connect.",
-                ]}
-              />
+              <Typewriter texts={["meaningful conversations.", "stronger communities.", "seamless collaboration.", ".connect."]} />
             </motion.div>
 
-            <motion.p
-              variants={fadeUp}
-              className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-xl"
-            >
-              One platform for messaging, voice calls, video calls, communities,
-              and real-time collaboration. Designed for high-velocity teams.
+            <motion.p variants={fadeUp} className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-xl">
+              One platform for messaging, voice calls, video calls, communities, and real-time
+              collaboration. Designed for high-velocity teams.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-wrap justify-center lg:justify-start gap-4">
@@ -263,8 +243,7 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
                 onClick={onSignup}
                 className="px-7 py-3.5 sm:px-8 sm:py-4 bg-teal-500 hover:bg-teal-400 text-[#050816] font-bold rounded-xl transition-all flex items-center gap-2 group shadow-xl shadow-teal-500/20 active:scale-95"
               >
-                Get Started{" "}
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                Get Started <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </button>
               <button className="px-7 py-3.5 sm:px-8 sm:py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl transition-all backdrop-blur-sm">
                 Watch Demo
@@ -272,7 +251,7 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
             </motion.div>
           </motion.div>
 
-          {/* Right — mockup (hidden on small screens, shown from lg up) */}
+          {/* Right — mockup (desktop only) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -281,7 +260,7 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/20 to-transparent rounded-3xl blur-3xl opacity-30" />
 
-            {/* Floating notification card */}
+            {/* Floating notification */}
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -298,7 +277,7 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
               </div>
             </motion.div>
 
-            {/* Floating audio card */}
+            {/* Floating audio bars */}
             <motion.div
               animate={{ y: [0, 15, 0] }}
               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
@@ -315,13 +294,11 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
                     />
                   ))}
                 </div>
-                <div className="text-sm font-mono font-bold text-emerald-400 tracking-tighter">
-                  12:34
-                </div>
+                <div className="text-sm font-mono font-bold text-emerald-400 tracking-tighter">12:34</div>
               </div>
             </motion.div>
 
-            {/* Main mockup image */}
+            {/* Main mockup */}
             <div className="relative rounded-3xl border border-white/10 overflow-hidden shadow-2xl shadow-black/50 group">
               <img
                 src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1200&q=80"
@@ -361,7 +338,8 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
               {
                 title: "Crystal Clear Voice",
                 icon: Mic,
-                img: "https://images.unsplash.com/photo-1589467336648-566c236247c2?auto=format&fit=crop&w=600&q=80",
+                // reliable Unsplash image for microphone / voice
+                img: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?auto=format&fit=crop&w=600&q=80",
               },
               {
                 title: "HD Video Meetings",
@@ -376,10 +354,11 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
               >
                 <img
                   src={item.img}
-                  className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
+                  className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-110 transition-all duration-700"
                   alt={item.title}
+                  loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#050816] via-[#050816]/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050816] via-[#050816]/30 to-transparent" />
                 <div className="absolute bottom-0 left-0 p-6 sm:p-8 space-y-3 sm:space-y-4">
                   <div className="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center text-[#050816]">
                     <item.icon size={24} />
@@ -402,45 +381,17 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
       <section id="features" className="py-20 sm:py-24 px-4 sm:px-6 bg-white/[0.02]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-teal-400 font-bold uppercase tracking-widest text-sm mb-4">
-              What's Inside
-            </h2>
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              Everything You Need
-            </h3>
+            <h2 className="text-teal-400 font-bold uppercase tracking-widest text-sm mb-4">What's Inside</h2>
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">Everything You Need</h3>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
-              {
-                icon: MessageSquare,
-                title: "Smart Messaging",
-                body: "Threaded replies, reactions, and advanced search functionality.",
-              },
-              {
-                icon: UsersRound,
-                title: "Group Spaces",
-                body: "Rich community tools with granular permission controls.",
-              },
-              {
-                icon: Activity,
-                title: "Presence System",
-                body: "Real-time activity tracking and customized status indicators.",
-              },
-              {
-                icon: Lock,
-                title: "Enterprise Security",
-                body: "End-to-end encryption and production-ready data protection.",
-              },
-              {
-                icon: Zap,
-                title: "Lightning Fast",
-                body: "Optimized signaling layer for sub-40ms message delivery.",
-              },
-              {
-                icon: Globe,
-                title: "Global Sync",
-                body: "Distributed nodes ensure clear calls from anywhere in the world.",
-              },
+              { icon: MessageSquare, title: "Smart Messaging",    body: "Threaded replies, reactions, and advanced search functionality." },
+              { icon: UsersRound,   title: "Group Spaces",        body: "Rich community tools with granular permission controls." },
+              { icon: Activity,     title: "Presence System",     body: "Real-time activity tracking and customized status indicators." },
+              { icon: Lock,         title: "Enterprise Security", body: "End-to-end encryption and production-ready data protection." },
+              { icon: Zap,          title: "Lightning Fast",      body: "Optimized signaling layer for sub-40ms message delivery." },
+              { icon: Globe,        title: "Global Sync",         body: "Distributed nodes ensure clear calls from anywhere in the world." },
             ].map((feat, i) => (
               <motion.div
                 key={i}
@@ -460,39 +411,67 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
 
       {/* ── About Section ── */}
       <section id="about" className="py-20 sm:py-24 px-4 sm:px-6 border-y border-white/5">
-        <div className="max-w-5xl mx-auto text-center space-y-8">
-          <div>
-            <h2 className="text-teal-400 font-bold uppercase tracking-widest text-sm mb-4">
-              About .connect
-            </h2>
-            <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-6">
-              Built for the way people actually communicate
-            </h3>
-          </div>
-          <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-teal-400 font-bold uppercase tracking-widest text-sm mb-4">
+            About .connect
+          </h2>
+          <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-6">
+            Built for the way people actually communicate
+          </h3>
+
+          {/* Always-visible intro line */}
+          <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto mb-4">
             .connect is a real-time communication platform designed to bring people closer — whether
-            you're a small team shipping a product, a community of creators, or friends staying in
-            touch across time zones. We built it because most chat tools are either too bloated or
-            too bare-bones. .connect sits in the middle: fast, focused, and genuinely enjoyable to use.
+            you're a small team, a community of creators, or friends across time zones.
           </p>
-          <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto">
-            At its core, .connect is about removing friction from conversation. Direct messages,
-            group channels, voice and video calls, status stories, and file sharing — all in one
-            place, with no switching between apps. Every feature is built around the idea that
-            communication should feel effortless, not like work.
-          </p>
-          <div className="grid sm:grid-cols-3 gap-6 pt-4">
-            {[
-              { heading: "Real-time first", text: "WebSocket-powered messaging means your words arrive the moment you send them." },
-              { heading: "Privacy by design", text: "Your conversations stay yours. End-to-end encryption on all private messages." },
-              { heading: "Open to everyone", text: "No paywalls on core features. Great communication shouldn't be a premium add-on." },
-            ].map((item, i) => (
-              <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/5 text-left space-y-2">
-                <h4 className="font-bold text-white">{item.heading}</h4>
-                <p className="text-slate-400 text-sm leading-relaxed">{item.text}</p>
-              </div>
-            ))}
+
+          {/* Expandable content */}
+          <div
+            className={`overflow-hidden transition-all duration-500 ease-in-out ${
+              aboutExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+            }`}
+          >
+            <div className="space-y-4 pb-6">
+              <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto">
+                We built it because most chat tools are either too bloated or too bare-bones.
+                .connect sits in the middle: fast, focused, and genuinely enjoyable to use.
+              </p>
+              <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-3xl mx-auto">
+                At its core, .connect is about removing friction from conversation. Direct messages,
+                group channels, voice and video calls, status stories, and file sharing — all in one
+                place, with no switching between apps. Every feature is built around the idea that
+                communication should feel effortless, not like work.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-6 pb-8">
+              {[
+                { heading: "Real-time first",    text: "WebSocket-powered messaging means your words arrive the moment you send them." },
+                { heading: "Privacy by design",  text: "Your conversations stay yours. End-to-end encryption on all private messages." },
+                { heading: "Open to everyone",   text: "No paywalls on core features. Great communication shouldn't be a premium add-on." },
+              ].map((item, i) => (
+                <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/5 text-left space-y-2">
+                  <h4 className="font-bold text-white">{item.heading}</h4>
+                  <p className="text-slate-400 text-sm leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Read more / less toggle */}
+          <button
+            onClick={() => setAboutExpanded((v) => !v)}
+            className="inline-flex items-center gap-2 text-teal-400 font-bold text-sm hover:text-teal-300 transition-colors mt-2"
+          >
+            {aboutExpanded ? "Show less" : "Read more"}
+            <motion.span
+              animate={{ rotate: aboutExpanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+              className="inline-flex"
+            >
+              <ChevronDown size={16} />
+            </motion.span>
+          </button>
         </div>
       </section>
 
@@ -501,8 +480,8 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
         <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12">
           <StatCounter value="50,000+" label="Daily Messages" />
           <StatCounter value="10,000+" label="Active Users" />
-          <StatCounter value="99.9%" label="Uptime" />
-          <StatCounter value="100+" label="Communities" />
+          <StatCounter value="99.9%"   label="Uptime" />
+          <StatCounter value="100+"    label="Communities" />
         </div>
       </section>
 
@@ -511,13 +490,11 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-teal-500/10 blur-[150px] rounded-full pointer-events-none" />
         <div className="max-w-4xl mx-auto relative z-10 space-y-8 sm:space-y-10">
           <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight">
-            Communication{" "}
-            <br className="hidden sm:block" />
+            Communication <br className="hidden sm:block" />
             <span className="text-teal-400 italic font-light">Without Limits.</span>
           </h2>
           <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto">
-            Everything you need to message, call, collaborate, and stay connected in one premium
-            workspace.
+            Everything you need to message, call, collaborate, and stay connected in one premium workspace.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
@@ -538,14 +515,11 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-12 mb-12 sm:mb-20 text-sm">
           <div className="col-span-2 space-y-4 sm:space-y-6">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-teal-500 rounded flex items-center justify-center font-black text-[#050816]">
-                .
-              </div>
-              <span className="text-lg font-bold">connect</span>
+              <div className="w-7 h-7 bg-teal-500 rounded flex items-center justify-center font-black text-[#050816] leading-none">.</div>
+              <span className="text-lg font-bold"><span className="text-teal-400">.</span>connect</span>
             </div>
             <p className="text-slate-500 max-w-xs leading-relaxed">
-              Redefining communication for modern teams. Built with speed, privacy, and design at
-              the core.
+              Redefining communication for modern teams. Built with speed, privacy, and design at the core.
             </p>
           </div>
           {["Product", "Company", "Legal"].map((cat) => (
