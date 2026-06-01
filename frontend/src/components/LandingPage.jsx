@@ -4,6 +4,7 @@ import {
   ArrowRight, Mic, MessageSquare, UsersRound, Video,
   Zap, Lock, Activity, Play, ChevronRight, Globe, ChevronDown,
 } from "lucide-react";
+import { Wordmark, AppIcon } from "./ConnectLogo";
 
 // ─── Motion Variants ────────────────────────────────────────────────────────
 const fadeUp = {
@@ -190,12 +191,7 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-lg flex items-center justify-center font-black text-[#040b14] text-lg leading-none shadow-lg shadow-teal-500/30">
-              .
-            </div>
-            <span className="text-[1.15rem] font-bold tracking-tight">
-              <span className="text-teal-400">.</span>connect
-            </span>
+            <Wordmark size="md" glow={true} />
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
@@ -569,7 +565,7 @@ export default function LandingPage({ logoUrl, onLogin, onSignup }) {
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 sm:gap-12 mb-12 sm:mb-16 text-sm">
           <div className="col-span-2 space-y-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-lg flex items-center justify-center font-black text-[#040b14] leading-none shadow-md shadow-teal-500/20">.</div>
+              <AppIcon size={28} />
               <span className="text-base font-bold"><span className="text-teal-400">.</span>connect</span>
             </div>
             <p className="text-slate-600 max-w-[240px] leading-relaxed text-[13px]">

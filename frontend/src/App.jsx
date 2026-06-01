@@ -31,6 +31,7 @@ import {
 import LandingPage from "./components/LandingPage";
 import OnboardingFlow from "./components/OnboardingFlow";
 import { pageTransition } from "./motionPresets";
+import { AppIcon, Wordmark } from "./components/ConnectLogo";
 import logoUrl from "../static/images/chatapp-logo.png";
 import callPersonOne from "../static/images/connect-person-1.svg";
 import callPersonTwo from "../static/images/connect-person-2.svg";
@@ -114,7 +115,7 @@ function AuthScreen({ mode, setMode, onAuthed, onBack }) {
     <motion.main className="auth-shell" {...pageTransition}>
       <motion.section className="auth-card" layout>
         <div className="auth-brand">
-          <img src={logoUrl} alt=".connect" />
+          <AppIcon size={52} />
           <div>
             <h1>.connect</h1>
             <p>{isSignup ? "Create your chat account" : "Welcome back"}</p>
@@ -225,8 +226,7 @@ function Sidebar({
       <header className="sidebar-top">
         <div className="brand-row">
           <Avatar name={currentUser.username} src={currentUser.profile_pic} online size={34} />
-          <img src={logoUrl} alt=".connect" />
-          <h2>.connect</h2>
+          <Wordmark size="sm" glow={false} />
         </div>
         <div className="header-actions">
           <button className="icon-btn" onClick={onOpenSettings} title="Settings">
