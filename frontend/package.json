@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5173",
-    "build": "vite build",
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "cross-env VITE_TARGET=django vite build",
     "build:django": "cross-env VITE_TARGET=django vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4173"
+    "build:vercel": "cross-env VITE_TARGET=vercel vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

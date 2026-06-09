@@ -25,7 +25,7 @@ const steps = [
   },
 ];
 
-export default function OnboardingFlow({ user, onFinish, onCreateGroup }) {
+export default function OnboardingFlow({ user, onFinish = () => {}, onCreateGroup = () => {} }) {
   return (
     <main className="onboarding-shell">
       <motion.section
@@ -38,14 +38,23 @@ export default function OnboardingFlow({ user, onFinish, onCreateGroup }) {
           welcome to .connect
         </motion.span>
         <motion.h1 variants={fadeUp}>
-          Let's set up your <span className="connect-wordmark inline-wordmark">.connect</span> space, {user.username}.
+          Let's set up your <span className="connect-wordmark inline-wordmark">.connect</span> space, {user?.username || 'friend'}.
         </motion.h1>
         <motion.p variants={fadeUp}>
           You can start with direct messages now, then add groups, roles, notifications, and calls as your platform grows.
         </motion.p>
         <motion.div className="onboarding-grid" variants={staggerContainer}>
           {steps.map(({ icon: Icon, title, body }) => (
-            <motion.article variants={fadeUp} key={title}>
+            <motion.article 
+              variants={fadeUp} 
+              key={title}
+              whileHover={{ 
+                y: -4,
+                backgroundColor: "rgba(255, 255, 255, 0.03)",
+                transition: { duration: 0.2 }
+              }}
+              className="onboarding-card"
+            >
               <Icon size={20} />
               <h3>{title}</h3>
               <p>{body}</p>
@@ -53,10 +62,20 @@ export default function OnboardingFlow({ user, onFinish, onCreateGroup }) {
           ))}
         </motion.div>
         <motion.div className="onboarding-actions" variants={fadeUp}>
-          <button className="hero-primary" onClick={onCreateGroup}>
+          <button 
+            className="hero-primary" 
+            onClick={onCreateGroup}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             Create a group
           </button>
-          <button className="hero-secondary" onClick={onFinish}>
+          <button 
+            className="hero-secondary" 
+            onClick={onFinish}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
             Enter .connect
           </button>
         </motion.div>

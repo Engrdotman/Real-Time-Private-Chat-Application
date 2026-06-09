@@ -6,9 +6,7 @@ export default defineConfig(({ command, mode }) => ({
   // dev  → "/"            (Vite dev server at localhost)
   // build for Vercel → "/"  (served from domain root)
   // build for Django → "/static/react/"  (set VITE_TARGET=django)
-  base: command === "build" && process.env.VITE_TARGET === "django"
-    ? "/static/react/"
-    : "/",
+  base: command === "build" && process.env.VITE_TARGET !== "vercel" ? "/static/react/" : "/",
   build: {
     outDir: "static/react",
     emptyOutDir: true,

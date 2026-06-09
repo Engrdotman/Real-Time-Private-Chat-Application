@@ -1,13 +1,9 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:vercel",
   "outputDirectory": "static/react",
   "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://your-django-backend.com/api/$1"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

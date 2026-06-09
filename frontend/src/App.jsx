@@ -1,4 +1,3 @@
-import "../static/css/style.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -27,24 +26,17 @@ import {
   PanelRight,
   FileUp,
   ShieldCheck,
+  Compass,
 } from "lucide-react";
 import LandingPage from "./components/LandingPage";
 import OnboardingFlow from "./components/OnboardingFlow";
+import DiscoverPage from "./components/DiscoverPage";
 import { pageTransition } from "./motionPresets";
 import { AppIcon, Wordmark } from "./components/ConnectLogo";
+import { assetUrl, authFetch, wsUrl } from "./api";
 import logoUrl from "../static/images/chatapp-logo.png";
 import callPersonOne from "../static/images/connect-person-1.svg";
 import callPersonTwo from "../static/images/connect-person-2.svg";
-
-const authFetch = (url, options = {}) =>
-  fetch(url, {
-    credentials: "same-origin",
-    headers: {
-      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
 
 function initials(value = "?") {
   return value.slice(0, 2).toUpperCase();
@@ -69,7 +61,7 @@ function formatLastSeen(timestamp) {
 function Avatar({ name, src, square = false, online = false, size = 40 }) {
   return (
     <div className={`avatar ${square ? "avatar-square" : ""}`} style={{ width: size, height: size }}>
-      {src ? <img src={src} alt="" /> : <span>{initials(name).slice(0, square ? 2 : 1)}</span>}
+      {src ? <img src={assetUrl(src)} alt="" /> : <span>{initials(name).slice(0, square ? 2 : 1)}</span>}
       {!square && <i className={online ? "online" : ""} />}
     </div>
   );
@@ -206,6 +198,7 @@ function Sidebar({
   onCreateGroup,
   onAddStory,
   onOpenStory,
+  onOpenDiscover,
   onLogout,
   darkMode,
   onToggleTheme,
@@ -274,6 +267,17 @@ function Sidebar({
           <small>{currentUser.status_text || "Express how you feel..."}</small>
         </span>
         <Settings size={17} />
+      </button>
+
+      <button className="my-status discover-entry" onClick={onOpenDiscover}>
+        <span className="discover-entry-icon">
+          <Compass size={19} />
+        </span>
+        <span>
+          <strong>Discover People</strong>
+          <small>Search, connect, and manage requests</small>
+        </span>
+        <ChevronRightIcon />
       </button>
 
       <div className="section-label">Direct Messages</div>
@@ -346,6 +350,10 @@ function MessageStatus({ message }) {
       <Check size={14} />
     </span>
   );
+}
+
+function ChevronRightIcon() {
+  return <span className="chevron-mark">&gt;</span>;
 }
 
 function TypingIndicator({ name }) {
@@ -614,7 +622,7 @@ function ProfileDrawer({ selected, currentUser, messageCount, onClose }) {
 function CallPreviewModal({ mode, selected, onClose }) {
   if (!mode || !selected) return null;
   const isVideo = mode === "video";
-  const selectedImage = selected.profile_pic || selected.avatar || callPersonOne;
+  const selectedImage = assetUrl(selected.profile_pic || selected.avatar) || callPersonOne;
   return (
     <Modal title={isVideo ? "Video call preview" : "Voice call preview"} onClose={onClose}>
       <div className="call-architecture">
@@ -655,9 +663,10 @@ function CallPreviewModal({ mode, selected, onClose }) {
 
 function Attachment({ url }) {
   const imageLike = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url);
-  if (imageLike) return <img className="attachment-preview" src={url} alt="Attachment" />;
+  const href = assetUrl(url);
+  if (imageLike) return <img className="attachment-preview" src={href} alt="Attachment" />;
   return (
-    <a className="attachment-link" href={url} target="_blank" rel="noreferrer">
+    <a className="attachment-link" href={href} target="_blank" rel="noreferrer">
       Open attachment
     </a>
   );
@@ -821,7 +830,7 @@ function StoryViewer({ storySet, index, onClose, onChanged }) {
           <small>{formatTime(story.timestamp)}</small>
         </span>
       </div>
-      <img src={story.image} alt="" onDoubleClick={like} />
+      <img src={assetUrl(story.image)} alt="" onDoubleClick={like} />
       {story.caption && <p className="story-caption">{story.caption}</p>}
       <div className="story-actions">
         <button onClick={like}>
@@ -899,6 +908,7 @@ export default function App() {
   const [notification, setNotification] = useState("");
   const [callMode, setCallMode] = useState(null);
   const [modal, setModal] = useState(null);
+  const [activeView, setActiveView] = useState("chat");
   const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -948,8 +958,7 @@ export default function App() {
       .then((response) => response.json())
       .then((data) => setMessages(data.messages || []));
 
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const url = selected.type === "group" ? `${protocol}://${window.location.host}/ws/group/${selected.id}/` : `${protocol}://${window.location.host}/ws/chat/${selected.id}/`;
+    const url = selected.type === "group" ? wsUrl(`/ws/group/${selected.id}/`) : wsUrl(`/ws/chat/${selected.id}/`);
     const socket = new WebSocket(url);
     socketRef.current = socket;
 
@@ -1076,25 +1085,35 @@ export default function App() {
         onCreateGroup={() => setModal("group")}
         onAddStory={() => setModal("story")}
         onOpenStory={(storySet, index) => setModal({ type: "viewer", storySet, index })}
+        onOpenDiscover={() => {
+          setActiveView("discover");
+          setDetailsOpen(false);
+        }}
         onLogout={logout}
         darkMode={darkMode}
         onToggleTheme={() => setDarkMode((value) => !value)}
       />
       <div className="chat-layout">
-        <ChatPanel
-          currentUser={currentUser}
-          selected={selected}
-          messages={messages}
-          connected={connected}
-          onSend={sendMessage}
-          onUpload={uploadAttachment}
-          onBack={() => setSelected(null)}
-          onOpenDetails={() => setDetailsOpen((value) => !value)}
-          onTyping={sendTyping}
-          typingUser={typingUser}
-          onStartCall={setCallMode}
-        />
-        <ProfileDrawer selected={selected} currentUser={currentUser} messageCount={messages.length} onClose={() => setDetailsOpen(false)} />
+        {activeView === "discover" ? (
+          <DiscoverPage onBack={() => setActiveView("chat")} />
+        ) : (
+          <>
+            <ChatPanel
+              currentUser={currentUser}
+              selected={selected}
+              messages={messages}
+              connected={connected}
+              onSend={sendMessage}
+              onUpload={uploadAttachment}
+              onBack={() => setSelected(null)}
+              onOpenDetails={() => setDetailsOpen((value) => !value)}
+              onTyping={sendTyping}
+              typingUser={typingUser}
+              onStartCall={setCallMode}
+            />
+            <ProfileDrawer selected={selected} currentUser={currentUser} messageCount={messages.length} onClose={() => setDetailsOpen(false)} />
+          </>
+        )}
       </div>
 
       <AnimatePresence>
