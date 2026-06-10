@@ -352,6 +352,32 @@ function MessageStatus({ message }) {
   );
 }
 
+function parseReplyMessage(value = "") {
+  const textValue = String(value || "");
+  const match = textValue.match(/^Reply to ([^:\n]+): ([^\n]*)\n([\s\S]*)$/);
+
+  if (!match) {
+    return { body: textValue, reply: null };
+  }
+
+  const nestedQuote = parseReplyMessage(match[2]);
+  return {
+    body: match[3],
+    reply: {
+      author: match[1],
+      excerpt: nestedQuote.body,
+    },
+  };
+}
+
+function messageText(message) {
+  return message.content || message.message || "";
+}
+
+function replyExcerpt(message) {
+  return parseReplyMessage(messageText(message)).body.split(/\s+/).filter(Boolean).join(" ");
+}
+
 function ChevronRightIcon() {
   return <span className="chevron-mark">&gt;</span>;
 }
@@ -425,7 +451,7 @@ function ChatPanel({
   function submit(event) {
     event.preventDefault();
     if (!selected || !text.trim()) return;
-    const payload = replyTo ? `Reply to ${replyTo.sender_username}: ${replyTo.content || replyTo.message}\n${text.trim()}` : text.trim();
+    const payload = replyTo ? `Reply to ${replyTo.sender_username}: ${replyExcerpt(replyTo)}\n${text.trim()}` : text.trim();
     onSend(payload);
     setText("");
     setReplyTo(null);
@@ -485,6 +511,7 @@ function ChatPanel({
         {messages.map((message) => {
           const isSent = message.sender_id === currentUser.id;
           const reactionKey = message.id || `${message.sender_id}-${message.timestamp}`;
+          const parsedMessage = parseReplyMessage(messageText(message));
           return (
             <motion.div
               className={`message ${isSent ? "sent" : "received"}`}
@@ -497,7 +524,13 @@ function ChatPanel({
               <div className="bubble">
                 {selected.type === "group" && !isSent && <strong>{message.sender_username}</strong>}
                 {message.file_url && <Attachment url={message.file_url} />}
-                {message.content || message.message ? <span>{message.content || message.message}</span> : null}
+                {parsedMessage.reply && (
+                  <div className="reply-quote">
+                    <strong>{parsedMessage.reply.author}</strong>
+                    <span>{parsedMessage.reply.excerpt}</span>
+                  </div>
+                )}
+                {parsedMessage.body ? <span>{parsedMessage.body}</span> : null}
                 <div className="message-actions">
                   <button type="button" onClick={() => setReplyTo(message)}>
                     Reply

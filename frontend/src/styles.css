@@ -1202,6 +1202,34 @@ button {
   color: var(--muted);
 }
 
+.reply-quote {
+  display: grid;
+  gap: 2px;
+  max-width: 100%;
+  padding: 7px 9px;
+  border-left: 3px solid currentColor;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 74%, transparent);
+  color: inherit;
+  opacity: 0.82;
+}
+
+.reply-quote strong {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.reply-quote span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .message-actions {
   display: flex;
   flex-wrap: wrap;
